@@ -19,4 +19,5 @@ module.exports = (grunt) ->
             tasks: ['mochaTest:test']
 
     grunt.registerTask 'default', ['mochaTest']
+    grunt.registerTask 'test', ['mochaTest']
 

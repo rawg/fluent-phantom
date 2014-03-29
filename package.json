@@ -4,7 +4,7 @@
   "description": "A simple DSL for scraping web content using PhantomJS. Can wait for page elements to be available, similar to waitFor.js.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+	"test": "node --debug /usr/local/bin/grunt test"
   },
   "repository": {
     "type": "git",
@@ -22,7 +22,6 @@
   },
   "homepage": "https://github.com/rawg/scraping-dsl",
   "devDependencies": {
-    "coffee-script": "~1.7.1",
     "grunt-contrib-coffee": "~0.10.1",
     "grunt-contrib-watch": "~0.6.1",
     "grunt": "~0.4.4",
@@ -31,6 +30,7 @@
     "should": "~3.2.0-beta1"
   },
   "dependencies": {
+    "coffee-script": "~1.7.1",
     "phantom": "~0.5.7"
   }
 }

@@ -1,12 +1,34 @@
 
 assert = require('assert')
 should = require('should')
-Request = require('../index').inject(require('./mock-phantom'))
+Request = require('./lib/scraping-dsl').inject(require('./mock-phantom'))
 
 delay = (ms, func) -> setTimeout func, ms
 
-describe 'Request Builder', ->
-    it 'Should allow .extract().and().handle()', (done) ->
+
+describe 'A request', ->
+    it 'should have a settable URL', ->
+        req = new Request
+        req.url('#')
+        should(req.url()).be.equal('#')
+
+    it 'should have a settable timeout', ->
+        req = new Request
+        req.timeout(500)
+        should(req.timeout()).be.equal(500)
+
+    it 'should have have a fluent interface', ->
+        req = new Request
+        should(req.timeout(500)).be.equal(req)
+        should(req.url('#')).be.equal(req)
+        should(req.condition(() ->)).be.equal(req)
+
+    it.skip 'should emit phantom events during execution'
+    it.skip 'should invoke phantom.exit() when finished'
+
+
+describe.skip 'Request builder', ->
+    it 'should allow .extract().and().handle()', (done) ->
         Request.create()
         .extract -> 
             true
@@ -16,14 +38,14 @@ describe 'Request Builder', ->
             done()
         .open '#'
 
-    it 'Should allow .until(timeout)', ->
+    it 'should allow .until(timeout)', ->
         req = Request.create()
         .until 500
         .build()
 
         should(req.timeout).be.equal(500)
 
-    it 'Should allow .when().until(timeout).then().otherwise(errorHandler)', (done) ->
+    it 'should allow .when().until(timeout).then().otherwise(errorHandler)', (done) ->
         req = Request.create()
         .when -> false
         .until 500
@@ -32,7 +54,7 @@ describe 'Request Builder', ->
             done()
         .open '#'
 
-    it 'Should allow .when().and().then()', ->
+    it 'should allow .when().and().then()', ->
         func = -> true
 
         req = Request.create()
@@ -41,40 +63,42 @@ describe 'Request Builder', ->
         .then func
         .build()
 
-        should(req.actions[0]).be.equal(func)
+        should(req.listeners('ready')[0]).be.equal(func)
 
-    it 'Should allow .when().has(condition).then(callback).otherwise(handler)', ->
+    it 'should allow .when().has(condition).then(callback).otherwise(handler)', ->
         func = -> true
         req = Request.create()
         .when().has(func).then(func).until(1000).otherwise(func)
         .build()
 
-        should(req.actions).have.length(1)
-        should(req.errorHandlers).have.length(1)
+        should(req.listeners('ready')).have.length(1)
+        should(req.listeners('timeout')).have.length(1)
         should(req.conditions).have.length(1)
-        should(req.actions[0]).be.equal(func)
-        should(req.errorHandlers[0]).be.equal(func)
+        
+        should(req.listeners('ready')[0]).be.equal(func)
+        should(req.listeners('timeout')[0]).be.equal(func)
         should(req.timeout).be.equal(1000)
+        
         should(req.conditions[0]).be.equal(func)
 
-describe 'Request', ->
-    it 'Should wait until an element is available', (done) ->
+describe.skip 'Request', ->
+    it 'should wait until an element is available', (done) ->
         sentry = false
-
-        delay 500, -> sentry = true
-        
-        req = Request.create()
-        .when -> sentry == true
-        .then ->
+       
+        req = new Request.Request
+        req.addCondition( -> sentry == true)
+        req.on 'ready', ->
             should(sentry).be.true
             done()
-        .until 2000
-        .open '#'
+        req.timeout = 2000
+        req.open '#'
+        
+        delay 500, -> sentry = true
     
-    it 'Should time out if an element does not become available', (done) ->
+    it 'should time out if an element does not become available', (done) ->
         sentry = false
 
-        Request.create()
+        req = Request.create()
         .when -> false
         .then -> should.fail('Request failed to wait for sentry')
         .until 500
@@ -82,9 +106,13 @@ describe 'Request', ->
         .then -> 
             should(sentry).be.true
             done()
-        .open '#'
+        .build()
 
-    it 'Should respond to halt()', (done) ->
+        req.on('ready', -> console.log('> ready'))
+        req.url = '#'
+        req.begin()
+
+    it 'should respond to halt()', (done) ->
 
         req = Request.create()
         .when -> false
@@ -96,7 +124,7 @@ describe 'Request', ->
 
         delay 500, req.halt()
 
-    it 'Should wait indefinitely (or at least 5s) if there is no timeout', (done) ->
+    it 'should wait indefinitely (or at least 5s) if there is no timeout', (done) ->
 
         req = Request.create()
         .when -> false
@@ -108,3 +136,9 @@ describe 'Request', ->
         .open '#'
         
         delay 3000, req.halt()
+
+    it.skip 'Should automativally invoke ph.exit() when finished', (done) ->
+
+
+        req = Request.create()
+

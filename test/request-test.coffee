@@ -1,144 +1,101 @@
 
-assert = require('assert')
-should = require('should')
-Request = require('../index').inject(require('./mock-phantom'))
+assert = require 'assert'
+should = require 'should'
+mock = require './mock-phantom'
+phantom = new mock.Phantom
+request = require('../lib/fluent-phantom').inject(phantom)
 
 delay = (ms, func) -> setTimeout func, ms
 
 
 describe 'A request', ->
+    afterEach ->
+        phantom.removeAllListeners()
+
     it 'should have a settable URL', ->
-        req = new Request
+        req = new request.Request
         req.url('#')
         should(req.url()).be.equal('#')
 
     it 'should have a settable timeout', ->
-        req = new Request
+        req = new request.Request
         req.timeout(500)
         should(req.timeout()).be.equal(500)
 
-    it 'should have have a fluent interface', ->
-        req = new Request
+    it 'should have have a fluent interface (setters should return this)', ->
+        req = new request.Request
         should(req.timeout(500)).be.equal(req)
         should(req.url('#')).be.equal(req)
         should(req.condition(() ->)).be.equal(req)
 
-    it.skip 'should emit phantom events during execution'
-    it.skip 'should invoke phantom.exit() when finished'
-
-
-describe.skip 'Request builder', ->
-    it 'should allow .extract().and().handle()', (done) ->
-        Request.create()
-        .extract -> 
-            true
-        .and()
-        .handle (result) -> 
-            should(result).be.true
-            done()
-        .open '#'
-
-    it 'should allow .until(timeout)', ->
-        req = Request.create()
-        .until 500
-        .build()
-
-        should(req.timeout).be.equal(500)
-
-    it 'should allow .when().until(timeout).then().otherwise(errorHandler)', (done) ->
-        req = Request.create()
-        .when -> false
-        .until 500
-        .otherwise ->
-            should(true).be.true
-            done()
-        .open '#'
-
-    it 'should allow .when().and().then()', ->
-        func = -> true
-
-        req = Request.create()
-        .when func
-        .and()
-        .then func
-        .build()
-
-        should(req.listeners('ready')[0]).be.equal(func)
-
-    it 'should allow .when().has(condition).then(callback).otherwise(handler)', ->
-        func = -> true
-        req = Request.create()
-        .when().has(func).then(func).until(1000).otherwise(func)
-        .build()
-
-        should(req.listeners('ready')).have.length(1)
-        should(req.listeners('timeout')).have.length(1)
-        should(req.conditions).have.length(1)
-        
-        should(req.listeners('ready')[0]).be.equal(func)
-        should(req.listeners('timeout')[0]).be.equal(func)
-        should(req.timeout).be.equal(1000)
-        
-        should(req.conditions[0]).be.equal(func)
-
-describe.skip 'Request', ->
-    it 'should wait until an element is available', (done) ->
+    it 'should wait for conditions to be satisfied before emitting ready', (done) ->
         sentry = false
-       
-        req = new Request.Request
-        req.addCondition( -> sentry == true)
-        req.on 'ready', ->
-            should(sentry).be.true
-            done()
-        req.timeout = 2000
-        req.open '#'
-        
+
+        req = new request.Request
+        req.timeout(2000)
+            .url('#')
+            .condition(-> sentry)
+            .on('ready', -> done())
+            .execute()
+
         delay 500, -> sentry = true
-    
-    it 'should time out if an element does not become available', (done) ->
-        sentry = false
 
-        req = Request.create()
-        .when -> false
-        .then -> should.fail('Request failed to wait for sentry')
-        .until 500
-        .then -> sentry = true
-        .then -> 
-            should(sentry).be.true
-            done()
-        .build()
+    it 'should timeout if conditions are not satisfied in time', (done) ->
 
-        req.on('ready', -> console.log('> ready'))
-        req.url = '#'
-        req.begin()
+        req = new request.Request
+        req.timeout(500)
+            .url('#')
+            .condition(-> false)
+            .on('timeout', -> done())
+            .on('ready', -> should.fail 'timeout', 'ready', 'Expected timeout but received ready instead')
+            .execute()
 
-    it 'should respond to halt()', (done) ->
 
-        req = Request.create()
-        .when -> false
-        .forever()
-        .otherwise ->
-            should(true).be.ok
-            done()
-        .open '#'
 
-        delay 500, req.halt()
+    it 'should invoke phantom methods during execution', (done) ->
+        phEvents = ['createPage', 'open', 'exit']
+        emitted = []
 
-    it 'should wait indefinitely (or at least 5s) if there is no timeout', (done) ->
+        delay 1500, -> 
+            keys = (key for key of emitted)
+            should.fail(keys, phEvents, 'Not all events were emitted. Only received ' + keys.join ', ')
 
-        req = Request.create()
-        .when -> false
-        .then -> should.fail('Element never became available but request began processing')
-        .forever()
-        .otherwise -> 
-            should(true).be.ok
-            done()
-        .open '#'
+        req = new request.Request
+        req.url('#').timeout(1500)
+
+        for event in phEvents
+            do (event) ->
+                phantom.once event, ->
+                    emitted[event] = true
+                    if emitted.createPage and emitted.open and emitted.exit
+                        done()
         
-        delay 3000, req.halt()
+        req.execute()
 
-    it.skip 'Should automativally invoke ph.exit() when finished', (done) ->
+    it 'should invoke phantom.exit() when finished without a condition', (done) ->
+        phantom.once 'exit', -> done()
 
+        req = new request.Request
+        req.execute()
 
-        req = Request.create()
+    it 'should invoke phantom.exit() after timing out', (done) ->
+        phantom.once 'exit', -> done()
+        
+        req = new request.Request
+        req.timeout(500)
+        req.condition -> false
+        req.execute()
+
+    it 'should invoke phantom.exit() after satisfying a condition', (done) ->
+        phantom.once 'exit', -> done()
+        
+        sentry = false
+        req = new request.Request
+        req.condition -> sentry
+        req.timeout 2000
+
+        delay 500, ->
+            sentry = true
+
+        req.execute()
 

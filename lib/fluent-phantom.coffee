@@ -18,6 +18,7 @@ binder = (phantom) ->
         REQUEST_FAILURE: 'failed'
         READY: 'ready'
         FINISH: 'finished'
+        CHECKING: 'checking'
 
     class Request
         end = ->
@@ -61,11 +62,11 @@ binder = (phantom) ->
 
             phantom.create (ph) =>
                 @_phantom = ph
-                @emit PHANTOM_CREATE, ph
-
+                @emit events.PHANTOM_CREATE
+                
                 ph.createPage (page) =>
                     @_page = page
-                    @emit PAGE_CREATE, page
+                    @emit events.PAGE_CREATE
 
                     page.open @_url, (status) =>
                         if (status != 'success')
@@ -76,6 +77,8 @@ binder = (phantom) ->
                             start = now()
 
                             tick = =>
+                                @emit events.CHECKING
+
                                 # Timeout
                                 if @_timeout > 0 && now() - start > @_timeout
                                     @emit events.TIMEOUT, page
@@ -102,6 +105,7 @@ binder = (phantom) ->
 
                         else
                             @emit events.READY, page
+                            end.call this
 
 
 

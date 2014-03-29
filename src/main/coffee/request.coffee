@@ -1,5 +1,15 @@
 
 
+###
+# TODO: switch to event emitters in request
+# TODO: send ph and page objects as args to events
+# TODO: document that conditions must be synchronous and return a bool
+# TODO: combine conditions by wrapping in (finish: Function) => Unit or something similar
+# TODO: add easy CSS selection
+###
+
+Emitter = require('events').EventEmitter
+
 now = ->
     (new Date).getTime()
 
@@ -55,7 +65,8 @@ binder = (phantom) ->
                     extract = @extractor
                     handler = callback
                     @successes.push (ph, page) ->
-                        page.evaluate extract, handler
+                        page.evaluate extract, (results) -> handler(results)
+
                     @extractor = null
 
                     @transitionTo states.EXEC
@@ -131,14 +142,10 @@ binder = (phantom) ->
 
         build: (url) ->
             req = new Request url
+
+            req.on('ready', callback) for callback in @successes
+            req.on('timeout', callback) for callback in @failures
             req.conditions = @conditions
-            req.actions = @successes
-
-            if @failures.length > 0
-                req.errorHandlers = @failures
-            else
-                req.errorHandlers.push -> console.error "Request timed out"
-
             req.timeout = @timeout
             req
 
@@ -148,47 +155,56 @@ binder = (phantom) ->
             req
 
     class Request
-        errors = 
+        events = 
             TIMEOUT: 'timeout'
             HALT: 'halt'
-            RESPONSE: 'response'
-
-        callAllAndQuit = (interval, functions, ph, page, args) ->
-            clearInterval(interval)
-            funcs = functions[..]
-            funcs.push -> ph.exit()
-            func.call(this, ph, page) for func in functions
+            FAILURE: 'failure'
+            READY: 'ready'
+            FINISH: 'finish'
+            PH_CREATE: 'create-phantom'
+            PAGE_CREATE: 'create-page'
+            PAGE_OPEN: 'open-page'
 
         constructor: (@url) ->
             @conditions = []
-            @actions = []
-            @errorHandlers = []
             @timeout = 3000
-            @interval
+            @interval = null
+            @phantom = null
+            @page = null
 
-        doSuccess: (ph, page) ->
-            callAllAndQuit(@interval, @actions, ph, page)
+            exit = (ph, page) -> ph.exit()
+            @on(events.FAILURE, exit)
+            @on(events.TIMEOUT, exit)
+            @on(events.FINISH, exit)
 
-        doFailure: (reason, ph, page) ->
-            callAllAndQuit(@interval, @errorHandlers, ph, page, reason)
+        addCondition: (callback) ->
+            @conditions.push callback
 
-        halt: () ->
+        halt: ->
             clearInterval(@interval)
-            @doFailure()
+            @phantom.exit()
+            @emit(events.HALT)
 
-        begin: () ->
+        begin: ->
             phantom.create (ph) =>
+                @phantom = ph
+                @emit events.PH_CREATE, ph
+
                 ph.createPage (page) =>
+                    @page = page
+                    @emit events.PAGE_CREATE, page
+
                     page.open @url, (status) =>
                         if (status != 'success')
-                            @doFailure(ph, page)
+                            @emit events.FAILURE, ph, page
+
                         else if @conditions.length
                             start = now()
 
                             tick = =>
                                 # Timeout (if applicable)
                                 if @timeout > 0 && now() - start > @timeout
-                                    @doFailure(ph, page)
+                                    @emit(events.TIMEOUT, ph, page)
 
                                 # Keep ticking
                                 else
@@ -202,7 +218,8 @@ binder = (phantom) ->
                                                 if tests.length
                                                     check tests.pop()
                                                 else
-                                                    @doSuccess(ph, page)
+                                                    @emit(events.READY, ph, page)
+                                                    @emit(events.FINISH, ph, page)
 
                                     # Start checking the conditions
                                     check tests.pop()
@@ -210,7 +227,10 @@ binder = (phantom) ->
                             @interval = setInterval(tick, 250)
 
                         else
-                            @doSuccess(ph, page)
+                            @emit(events.READY, ph, page)
+                            @emit(events.FINISH, ph, page)
+
+        Request.prototype.__proto__ = Emitter.prototype
 
     exports =
         "RequestBuilder": RequestBuilder
