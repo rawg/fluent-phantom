@@ -2,12 +2,15 @@
 
 
 Emitter = require('events').EventEmitter
+Grammar = require('./builder-grammar')
 
 now = ->
     (new Date).getTime()
 
+
 binder = (phantom) ->
     phantom = if typeof phantom == 'object' then phantom else require 'phantom'
+
 
     events =
         HALT: 'halted'
@@ -19,6 +22,81 @@ binder = (phantom) ->
         READY: 'ready'
         FINISH: 'finished'
         CHECKING: 'checking'
+    
+    
+    class Builder extends Grammar.Sentence
+
+        constructor: ->
+            @properties = 
+                conditions: []
+                actions: []
+                timeoutHandlers: []
+                timeout: null
+                url: null
+
+        # Currying keeps access consistent - otherwise you'd have to use 
+        # something like timeout.after(val) instead of timeout().after(val)
+        # and timeout(val)
+        timeout: (val) -> 
+            obj = new Grammar.Timeout @
+            obj._push val
+        
+        forever: -> @timeout 0
+
+        extract: (val) -> 
+            obj = new Grammar.Extract @
+            obj._push val
+
+        select: @extract
+
+        when: (val) ->
+            obj = new Grammar.WaitFor @
+            obj._push val
+
+        wait: @when
+
+        from: (val) ->
+            obj = new Grammar.From @
+            obj._push val
+
+        url: @from
+
+        execute: (val) ->
+            obj = new Grammar.Execute @
+            obj._push val
+
+        do: @execute
+        evaluate: @execute
+
+        # Conditional synonym
+        until: (arg) ->
+            if typeof arg is 'number' then @timeout
+            else @when
+
+        # Build a request
+        build: ->
+            req = new Request
+            if @properties.timeout then req.timeout @properties.timeout
+            if @properties.url then req.url @properties.url
+
+            req.condition(condition) for condition in @properties.conditions
+            req.on(events.TIMEOUT, callback) for callback in @properties.timeoutHandlers
+            req.on(events.READY, callback) for callback in @properties.actions
+
+            req
+
+        # Build and execute a request
+        execute: (url) ->
+            @from url
+            req = @build()
+            req.execute()
+            req
+
+        _terminated: ->
+            # Not so sure I like this...
+            if typeof @and is 'undefined'
+                @and = -> @
+
 
     class Request
         end = ->
@@ -35,7 +113,7 @@ binder = (phantom) ->
             @_timeout = 3000
 
         condition: (callback) ->
-            if typeof callback != 'function' then throw Error "Invalid condition"
+            if typeof callback isnt 'function' and typeof callback isnt 'object' then throw Error "Invalid condition"
             @_conditions.push callback
             this
 
@@ -89,8 +167,15 @@ binder = (phantom) ->
                                     isReady = true
                                     tests = @_conditions[..]
 
-                                    check = (condition) => 
-                                        page.evaluate condition, (result) =>
+                                    check = (condition) =>
+                                        if typeof condition is 'function'
+                                            test = condition
+                                            args = null
+
+                                        else if typeof condition is 'object'
+                                            [args, test] = condition
+
+                                        handler = (result) =>
                                             isReady = isReady & result
                                             if isReady
                                                 if tests.length
@@ -98,7 +183,9 @@ binder = (phantom) ->
                                                 else
                                                     @emit events.READY, page
                                                     end.call this
-                                    
+                                        
+                                        page.evaluate test, handler, args
+
                                     check tests.pop()
 
                             @_interval = setInterval tick, 250
@@ -113,6 +200,8 @@ binder = (phantom) ->
 
     exports =
         "Request": Request
+        "Builder": Builder
+        "create": -> new Builder
         
 
 module.exports = binder()

@@ -30,11 +30,11 @@ class MockPage
         @emit 'open', url
         callback 'success'
 
-    evaluate: (extract, handle) ->
+    evaluate: (extract, handle, argument) ->
         if typeof extract != 'function' then throw Error "Invalid extractor callback " + extract
         if typeof handle != 'function' then throw Error "Invalid handler callback" + handle
         @emit 'evaluate'
-        handle extract()
+        handle extract(argument)
 
 
 MockPage.prototype.__proto__ = Emitter.prototype

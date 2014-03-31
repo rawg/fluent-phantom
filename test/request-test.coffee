@@ -40,6 +40,16 @@ describe 'A request', ->
 
         delay 500, -> sentry = true
 
+    it 'should accept conditions as a two item tuple of [arguments: Any, sentry: (Any) => Boolean]', (done) ->
+        sentry = 5
+
+        req = new request.Request
+        req.condition([5, (arg) -> sentry + arg >= 10])
+            .on('ready', -> done())
+            .execute()
+
+        delay 500, -> sentry = 5
+
     it 'should timeout if conditions are not satisfied in time', (done) ->
 
         req = new request.Request

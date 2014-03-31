@@ -4,7 +4,7 @@
   "description": "A simple DSL for scraping web content using PhantomJS. Can wait for page elements to be available, similar to waitFor.js.",
   "main": "index.js",
   "scripts": {
-	"test": "node --debug /usr/local/bin/grunt test"
+    "test": "node --debug /usr/local/bin/grunt test"
   },
   "repository": {
     "type": "git",
@@ -27,7 +27,8 @@
     "grunt": "~0.4.4",
     "mocha": "~1.18.2",
     "grunt-mocha-test": "~0.10.0",
-    "should": "~3.2.0-beta1"
+    "should": "~3.2.0-beta1",
+    "express": "~3.5.1"
   },
   "dependencies": {
     "coffee-script": "~1.7.1",
