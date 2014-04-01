@@ -4,6 +4,8 @@ module.exports = (grunt) ->
     grunt.loadNpmTasks 'grunt-contrib-coffee'
     grunt.loadNpmTasks 'grunt-contrib-watch'
     grunt.loadNpmTasks 'grunt-mocha-test'
+    grunt.loadNpmTasks 'grunt-express'
+
 
     grunt.initConfig
         mochaTest:
@@ -14,10 +16,16 @@ module.exports = (grunt) ->
                     require: ['should', 'coffee-script/register']
                 src: ['test/**/*.coffee']
 
+        express:
+            server:
+                options:
+                    port: 3030
+                    bases: 'test/resources'
+
         watch:
             files: ['lib/**/*.coffee', 'test/**/*.coffee'] #src/main/coffee/**/*.coffee', 'src/test/coffee/**/*.coffee']
-            tasks: ['mochaTest:test']
+            tasks: ['express:server', 'mochaTest:test']
 
-    grunt.registerTask 'default', ['mochaTest']
-    grunt.registerTask 'test', ['mochaTest']
+    grunt.registerTask 'default', ['express', 'mochaTest']
+    grunt.registerTask 'test', ['express', 'mochaTest']
 

@@ -1,7 +1,4 @@
 ###
-#phantom.create (ph) =>
-                ph.createPage (page) =>
-                    page.open @url, (status) =>
 ###
 
 Emitter = require('events').EventEmitter
@@ -36,6 +33,8 @@ class MockPage
         @emit 'evaluate'
         handle extract(argument)
 
+    set: ->
+        # pass
 
 MockPage.prototype.__proto__ = Emitter.prototype
 MockPhantom.prototype.__proto__ = Emitter.prototype
