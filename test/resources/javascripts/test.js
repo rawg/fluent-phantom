@@ -10,7 +10,7 @@ window.onload = function () {
 	}
 
 	function addTrailing() {
-		document.querySelector('#trailing').innerHTML += "<li>Trailing " + ++headlines + "</li>";
+		document.querySelector('#trailing').innerHTML += "<li>Trailing " + ++trailing + "</li>";
 	}
 	
 	function addTicker() {

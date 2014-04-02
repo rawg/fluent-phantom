@@ -4,10 +4,7 @@ Grammatical chunks specific to our scraping DSL.
 ###
 
 # Include our abstract grammar and expand it into the local namespace
-Grammar = require './grammar'
-Chunk = Grammar.Chunk
-Sentence = Grammar.Sentence
-
+{Sentence, Chunk} = require './grammar'
 
 # Helper method to reate a condition that will cause execution to wait until a 
 # CSS selector can be satisfied.
@@ -63,7 +60,7 @@ class Extract extends Chunk
         else
             extractor = @_arguments[0]
             handler = @_arguments[1]
-            @_sentence.properties.actions.push ->
+            @_sentence.properties.actions.push (page) ->
                 page.evaluate extractor, handler
 
     _validate: (argument) ->
@@ -112,7 +109,8 @@ class WaitFor extends Chunk
     page: (argument) -> 
         @_sentence.from(argument)
         @
-    url: @page
+    
+    url: (argument) -> @page(argument)
 
 
 # Execute code against a page object directly. The callback is provided with a

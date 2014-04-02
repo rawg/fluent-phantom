@@ -1,7 +1,7 @@
 
 
 module.exports = (grunt) ->
-    grunt.loadNpmTasks 'grunt-contrib-coffee'
+    #grunt.loadNpmTasks 'grunt-contrib-coffee'
     grunt.loadNpmTasks 'grunt-contrib-watch'
     grunt.loadNpmTasks 'grunt-mocha-test'
     grunt.loadNpmTasks 'grunt-express'
@@ -23,9 +23,8 @@ module.exports = (grunt) ->
                     bases: 'test/resources'
 
         watch:
-            files: ['lib/**/*.coffee', 'test/**/*.coffee'] #src/main/coffee/**/*.coffee', 'src/test/coffee/**/*.coffee']
+            files: ['lib/**/*.coffee', 'test/**/*.coffee']
             tasks: ['express:server', 'mochaTest:test']
 
     grunt.registerTask 'default', ['express', 'mochaTest']
-    grunt.registerTask 'test', ['express', 'mochaTest']
 

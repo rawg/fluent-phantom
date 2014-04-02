@@ -3,40 +3,56 @@ assert = require 'assert'
 should = require 'should'
 request = require('../lib/fluent-phantom')
 
-describe 'A live request', ->
-    it 'should scrape elements by selectors', (done) ->
-        handler = (results) ->
-            console.log 'results', results
-            done()
+handler = (done) ->
+    (results) ->
+        results.length.should.be.above 5
+        results[0].innerText.should.equal 'Headline 1'
+        done()
 
-        fail = ->
-            should.fail 'Timed out'
-            done()
+fail = (done) ->
+    -> 
+        should.fail 'Timed out'
+        done()
+
+describe 'A live request', ->
+    it 'should wait for and scrape elements by selectors', (done) ->
 
         req = request.create()
             .extract('#headlines li')
             .from('http://localhost:3030/index.html')
-            .and().then(handler)
+            .and().then(handler(done))
             .until(10000)
-            .otherwise(fail)
+            .otherwise(fail(done))
             .build()
-
-        events =
-            HALT: 'halted'
-            PHANTOM_CREATE: 'phantom-created'
-            PAGE_CREATE: 'page-created'
-            PAGE_OPEN: 'page-opened'
-            TIMEOUT: 'timeout'
-            REQUEST_FAILURE: 'failed'
-            READY: 'ready'
-            FINISH: 'finished'
-            CHECKING: 'checking'
-
-        for key, event of events
-            do (event) ->
-                #req.on event, -> console.log event
 
         req.execute()
 
+    it 'should extract results using functions', (done) ->
+        req = request.create()
+            .when(-> document.querySelectorAll('#headlines li').length > 5)
+            .extract(-> document.querySelectorAll('#headlines li'))
+            .from('http://localhost:3030/index.html')
+            .and().then(handler(done))
+            .until(10000)
+            .otherwise(fail(done))
+            .build()
+
+        req.execute()
+
+    it 'should extract results using page.evaluate', (done) ->
+        req = request.create()
+            .when().page()
+            .url('http://localhost:3030/index.html')
+            .has(-> document.querySelectorAll('#headlines li').length > 5)
+            .execute((page) ->
+                extractor = -> document.querySelectorAll('#headlines li')
+                
+                page.evaluate extractor, handler(done)
+            ).until(10000)
+            .otherwise(fail(done))
+            .build()
+
+        req.execute()
+            
 
 
