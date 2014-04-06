@@ -63,12 +63,11 @@ binder = (phantom) ->
             obj = @_chunk new Grammar.Otherwise @
             obj._push val
 
-        execute: (val) ->
+        evaluate: (val) ->
             obj = @_chunk new Grammar.Execute @
             obj._push val
 
-        do: (val) -> @execute val
-        evaluate: (val) -> @execute val
+        do: (val) -> @evaluate val
 
         # Conditional synonym: until(1000) should be interpreted as setting
         # the request timeout to 1s, but until('selector') and until(->) should
@@ -76,6 +75,14 @@ binder = (phantom) ->
         until: (arg) ->
             if typeof arg is 'number' then @timeout(arg)
             else @when(arg)
+
+        # Allow crossover to an immediately previous Extract clause for extract('selector').and(->).with(props)
+        with: (args...) ->
+            for idx in [@_chunks.length - 1 .. 0]
+                if @_chunks[idx] instanceof Grammar.Extract
+                    @_chunks[idx].with(args)
+                    return @
+            @
 
         # Build a request
         build: ->
@@ -89,7 +96,6 @@ binder = (phantom) ->
             for callback in @properties.errorHandlers
                 req.on(events.TIMEOUT, callback)
                 req.on(events.REQUEST_FAILURE, callback)
-            #req.on(events.READY, callback) for callback in @properties.actions
             req.action(action) for action in @properties.actions
 
             req
@@ -121,6 +127,7 @@ binder = (phantom) ->
         READY: 'ready'
         FINISH: 'finished'
         CHECKING: 'checking'
+        CONSOLE: 'console'
     
     
     # A request
@@ -182,7 +189,7 @@ binder = (phantom) ->
                 
                 ph.createPage (page) =>
                     @_page = page
-                    page.set('onConsoleMessage', (msg) -> console.log 'Phantom Message:', msg)
+                    page.set('onConsoleMessage', (msg) => @emit events.CONSOLE, msg)
                     @emit events.PAGE_CREATE
 
                     page.open @_url, (status) =>

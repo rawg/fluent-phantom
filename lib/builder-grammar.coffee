@@ -27,36 +27,54 @@ class Timeout extends Chunk
 # and process it's results. Use as 
 # `extract('selector').and().then((result) -> do stuff)`
 class Extract extends Chunk
+    # Allowable properties
+    nodeProperties = ['attributes', 'baseURI', 'childElementCount', 'childNodes'
+        ,'classList', 'className', 'dataset', 'dir', 'hidden', 'id', 'innerHTML'
+        ,'innerText', 'lang', 'localName', 'namespaceURI', 'nodeName', 'nodeType'
+        ,'nodeValue', 'outerHTML', 'outerText', 'prefix', 'style', 'tabIndex'
+        ,'tagName', 'textContent', 'title', 'type', 'value', 'children'
+    ]
+
     constructor: (@_sentence) ->
         super(@_sentence)
         @_numargs = 2
 
+        # Properties to be preserved when extracting via a CSS selector
+        @_props = ['children', 'tagName', 'innerText', 'innerHTML', 'id', 'attributes']
+
     _mutate: ->
+        # Extract elements via a CSS selector
         if typeof @_arguments[0] is 'string'
             @_sentence.properties.conditions.push createCondition @_arguments[0]
             selector = @_arguments[0]
             handler = @_arguments[1]
+            args =
+                selector: selector
+                preserve: @_props[..]
+
             @_sentence.properties.actions.push (page) ->
                 extractor = (query) ->
-                    results = []
-                    preserve = ['attributes', 'baseURI', 'childElementCount', 'childNodes', 'children'
-                        ,'classList', 'className', 'dataset', 'dir', 'hidden', 'id', 'innerHTML'
-                        ,'innerText', 'lang', 'localName', 'namespaceURI', 'nodeName', 'nodeType'
-                        ,'nodeValue', 'outerHTML', 'outerText', 'prefix', 'style', 'tabIndex'
-                        ,'tagName', 'textContent', 'title', 'type', 'value'
-                    ]
-                    
-                    for elem in document.querySelectorAll(query)
-                        obj = {}
-                        for key in preserve
-                            obj[key] = elem[key]
+                    # Function to recursively filter a list of HTML elements
+                    filter = (elems) ->
+                        results = []
+                        for elem in elems
+                            obj = {}
+                            for key in query.preserve
+                                if key is 'children' or key is 'childNodes'
+                                    obj[key] = filter(elem[key])
+                                else
+                                    obj[key] = elem[key]
 
-                        results.push obj
+                            results.push obj
 
-                    results
+                        results
 
-                page.evaluate extractor, handler, selector
+                    filter document.querySelectorAll(query.selector)
 
+
+                page.evaluate extractor, handler, args
+
+        # Extract via a function
         else
             extractor = @_arguments[0]
             handler = @_arguments[1]
@@ -82,6 +100,17 @@ class Extract extends Chunk
         @_sentence.from(argument)
         @
 
+    with: (props...) ->
+        properties = props[0]
+        if typeof properties isnt 'object' or properties not instanceof Array or properties.length <= 0
+            throw Error "Invalid properties"
+        for property in properties
+            if nodeProperties.indexOf(property) < 0
+                throw Error "Invalid property: " + property
+        @_props = properties
+        @
+
+    properties: (properties...) -> @with(properties)
 
 # Wait for a CSS selector to be satisfied or for a function to return true
 # when page has 'selector'

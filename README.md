@@ -4,7 +4,7 @@ A fluent interface for scraping web content in Node with the PhantomJS headless 
 ## Installation
 Install via npm with:
 ```
-npm install scraping-dsl
+npm install fluent-phantom
 ```
 
 Note that this package depends on the [PhantomJS bridge for Node](https://github.com/sgentle/phantomjs-node), which assumes that you have already installed [PhantomJS](http://phantomjs.org/).
@@ -15,12 +15,12 @@ The module should be easy to use (that was the point of writing it).  Just inclu
 ### Setup
 Include the module with require and create a new request with the ```create()``` method.
 ```coffeescript
-Request = require 'scraping-dsl'
+Request = require 'fluent-phantom'
 req = Request.create()
 ```
 
 ```javascript
-var Request = require('scraping-dsl'),
+var Request = require('fluent-phantom'),
 	req = Request.create()
 ```
 

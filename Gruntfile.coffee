@@ -1,7 +1,6 @@
 
 
 module.exports = (grunt) ->
-    #grunt.loadNpmTasks 'grunt-contrib-coffee'
     grunt.loadNpmTasks 'grunt-contrib-watch'
     grunt.loadNpmTasks 'grunt-mocha-test'
     grunt.loadNpmTasks 'grunt-express'
@@ -27,4 +26,5 @@ module.exports = (grunt) ->
             tasks: ['express:server', 'mochaTest:test']
 
     grunt.registerTask 'default', ['express', 'mochaTest']
+    grunt.registerTask 'server', ['express', 'express-keepalive']
 

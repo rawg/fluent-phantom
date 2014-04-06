@@ -28,8 +28,13 @@ describe 'A request builder', ->
         req = request.create().from('#').build()
         req._url.should.equal('#')
 
-    it 'should interpret extract(callback).and.do(callback)', ->
-        builder = request.create()
-            .extract(-> false).and().then(-> true).when('more stuff')
-        #    .extract(-> 
-    it.skip 'should interpret when(callback).then.do.(callback)'
+    it 'should allow cross over between extract and from', ->
+        req = request.create()
+            .extract('#headlines li')
+            .from('#')
+            .and()
+            .process((result) -> true)
+            .build()
+
+        req._url.should.equal('#')
+

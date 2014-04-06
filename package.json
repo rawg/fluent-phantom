@@ -1,14 +1,14 @@
 {
-  "name": "scraping-dsl",
-  "version": "0.0.1",
+  "name": "fluent-phantom",
+  "version": "0.1.0",
   "description": "A simple DSL for scraping web content using PhantomJS. Can wait for page elements to be available, similar to waitFor.js.",
   "main": "index.js",
   "scripts": {
-    "test": "node --debug /usr/local/bin/grunt test"
+    "test": "grunt test"
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/rawg/scraping-dsl.git"
+    "url": "git://github.com/rawg/fluent-phantom.git"
   },
   "keywords": [
     "scrape",
@@ -18,11 +18,10 @@
   "author": "Jeremy Fisher <jeremy@rentawebgeek.com>",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/rawg/scraping-dsl/issues"
+    "url": "https://github.com/rawg/fluent-phantom/issues"
   },
-  "homepage": "https://github.com/rawg/scraping-dsl",
+  "homepage": "https://github.com/rawg/fluent-phantom",
   "devDependencies": {
-    "grunt-contrib-coffee": "~0.10.1",
     "grunt-contrib-watch": "~0.6.1",
     "grunt": "~0.4.4",
     "mocha": "~1.18.2",
