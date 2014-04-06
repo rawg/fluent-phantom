@@ -5,8 +5,7 @@ request = require('../lib/fluent-phantom')
 
 handler = (done) ->
     (results) ->
-        console.log 'finito'
-        results.length.should.be.above 5
+        results.length.should.be.above 5  # Actually 10...
         results[0].innerText.should.equal 'Headline 1'
         done()
 
@@ -73,5 +72,20 @@ describe 'A live request', ->
         req.execute()
 
 
+    it 'should allow select().properties(x, y, z).of(selector)...', (done) ->
+        req = request.create()
+            .select()
+            .properties('id', 'children', 'innerText')
+            .of('#headlines li')
+            .and()
+            .then((result) -> 
+                results.length.should.be.above 5
+                results[0].should.have.property 'innerText'
+                results[0].should.have.property 'id'
+                results[0].should.have.property 'children'
+                done()
+            )
+            .otherwise(fail(done))
+            .execute()
     
 

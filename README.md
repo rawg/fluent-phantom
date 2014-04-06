@@ -24,7 +24,7 @@ var Request = require('fluent-phantom'),
 	req = Request.create()
 ```
 
-### Extracting content
+### Extracting content using selectors
 Extracting content by CSS selectors is straightforward - using the `select()` or
 `extract()` grammar will create a request that waits for a selector to exist in 
 the DOM (helpful if it's created by a long-running AJAX request), extract it,
