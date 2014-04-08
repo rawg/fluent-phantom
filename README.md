@@ -9,8 +9,14 @@ npm install fluent-phantom
 
 Note that this package depends on the [PhantomJS bridge for Node](https://github.com/sgentle/phantomjs-node), which assumes that you have already installed [PhantomJS](http://phantomjs.org/).
 
+## Overview
+This package has two key components: a `Request` object that manages a `phantom` process and a `Builder` grammar that
+provides a fluent DSL to build requests. The examples below show the use of the fluent builder, which can be instantiated using the package's `create()` method. 
+
+The builder is a "sentence" that can contain many chunks that describe how a request should behave. Each chunk consists of one or many terms, but the specific terms rarely matter - the order of arguments is more important in most cases. For instance, the `select` chunk requires two arguments: an extractor function or a CSS selector, and a handler function that can operate on the results that are brought back from Phantom. These arguments can be provided as `select(extractor).process(handler)`, or in a longer form such as `select(extractor).and().then().process(handler)`. The order of the terms doesn't matter, but each of them may accept an argument, and the order of the arguments does matter (generally).
+
 ## Usage
-The module should be easy to use (that was the point of writing it).  Just include it and describe your scraping actions.  Most examples are in CoffeeScript, but you get the point.
+The module should be easy to use.  Just include it and describe your scraping actions.  The examples are in CoffeeScript, but you get the point.
 
 ### Setup
 Include the module with require and create a new request with the ```create()``` method.
@@ -19,10 +25,6 @@ Request = require 'fluent-phantom'
 req = Request.create()
 ```
 
-```javascript
-var Request = require('fluent-phantom'),
-	req = Request.create()
-```
 
 ### Extracting content using selectors
 Extracting content by CSS selectors is straightforward - using the `select()` or
@@ -37,5 +39,14 @@ Request.create()
 	.and().then((results) -> console.log results)
 	.execute()
 ```
+
+### Extracting content using functions
+
+
+### Waiting for content to be ready
+
+
+### Handling errors
+
 
 

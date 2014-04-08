@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>#</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, target-densitydpi=160dpi, initial-scale=1.0; maximum-scale=1.0; user-scalable=0;">
+  <link rel="stylesheet" media="all" href="docco.css" />
+</head>
+<body>
+  <div id="container">
+    <div id="background"></div>
+    
+      <ul id="jump_to">
+        <li>
+          <a class="large" href="javascript:void(0);">Jump To &hellip;</a>
+          <a class="small" href="javascript:void(0);">+</a>
+          <div id="jump_wrapper">
+          <div id="jump_page">
+            
+              
+              <a class="source" href="builder-grammar.html">
+                builder-grammar.coffee
+              </a>
+            
+              
+              <a class="source" href="fluent-phantom.html">
+                fluent-phantom.coffee
+              </a>
+            
+              
+              <a class="source" href="grammar.html">
+                grammar.coffee
+              </a>
+            
+          </div>
+        </li>
+      </ul>
+    
+    <ul class="sections">
+        
+        
+        
+        <li id="section-1">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-1">&#182;</a>
+              </div>
+              <h1 id="-">#</h1>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>Grammatical chunks specific to our scraping DSL.</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-2">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-2">&#182;</a>
+              </div>
+              <h1 id="-">#</h1>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-3">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-3">&#182;</a>
+              </div>
+              <p>Include our abstract grammar and expand it into the local namespace</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>{Sentence, Chunk} = <span class="hljs-built_in">require</span> <span class="hljs-string">'./grammar'</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-4">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-4">&#182;</a>
+              </div>
+              <p>Helper method to reate a condition that will cause execution to wait until a 
+CSS selector can be satisfied.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-function"><span class="hljs-title">createCondition</span> = <span class="hljs-params">(selector)</span> -&gt;</span>
+    [selector, <span class="hljs-function"><span class="hljs-params">(query)</span> -&gt;</span> <span class="hljs-built_in">document</span>.querySelectorAll(query).length &gt; <span class="hljs-number">0</span>]</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-5">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-5">&#182;</a>
+              </div>
+              <p>Set the timeout duration of a Request</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Timeout</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Chunk</span></span>
+    <span class="hljs-attribute">_mutate</span>:<span class="hljs-function"> -&gt;</span>
+        <span class="hljs-property">@_sentence</span>.properties.timeout = <span class="hljs-property">@_arguments</span>[<span class="hljs-number">0</span>]
+
+    <span class="hljs-attribute">_validate</span>: <span class="hljs-function"><span class="hljs-params">(argument)</span> -&gt;</span>
+        <span class="hljs-keyword">typeof</span> argument <span class="hljs-keyword">is</span> <span class="hljs-string">'number'</span> <span class="hljs-keyword">and</span> argument &gt;= <span class="hljs-number">0</span>
+
+    <span class="hljs-attribute">after</span>: <span class="hljs-function"><span class="hljs-params">(argument)</span> -&gt;</span> <span class="hljs-property">@_push</span> argument</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-6">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-6">&#182;</a>
+              </div>
+              <p>Extract a CSS selector or a callback that runs in the context of a page
+and process it’s results. Use as 
+<code>extract(&#39;selector&#39;).and().then((result) -&gt; do stuff)</code></p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Extract</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Chunk</span></span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-7">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-7">&#182;</a>
+              </div>
+              <p>Allowable properties</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    nodeProperties = [<span class="hljs-string">'attributes'</span>, <span class="hljs-string">'baseURI'</span>, <span class="hljs-string">'childElementCount'</span>, <span class="hljs-string">'childNodes'</span>
+        ,<span class="hljs-string">'classList'</span>, <span class="hljs-string">'className'</span>, <span class="hljs-string">'dataset'</span>, <span class="hljs-string">'dir'</span>, <span class="hljs-string">'hidden'</span>, <span class="hljs-string">'id'</span>, <span class="hljs-string">'innerHTML'</span>
+        ,<span class="hljs-string">'innerText'</span>, <span class="hljs-string">'lang'</span>, <span class="hljs-string">'localName'</span>, <span class="hljs-string">'namespaceURI'</span>, <span class="hljs-string">'nodeName'</span>, <span class="hljs-string">'nodeType'</span>
+        ,<span class="hljs-string">'nodeValue'</span>, <span class="hljs-string">'outerHTML'</span>, <span class="hljs-string">'outerText'</span>, <span class="hljs-string">'prefix'</span>, <span class="hljs-string">'style'</span>, <span class="hljs-string">'tabIndex'</span>
+        ,<span class="hljs-string">'tagName'</span>, <span class="hljs-string">'textContent'</span>, <span class="hljs-string">'title'</span>, <span class="hljs-string">'type'</span>, <span class="hljs-string">'value'</span>, <span class="hljs-string">'children'</span>
+    ]
+
+    <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@_sentence</span>)</span> -&gt;</span>
+        <span class="hljs-keyword">super</span>(<span class="hljs-property">@_sentence</span>)
+        <span class="hljs-property">@_numargs</span> = <span class="hljs-number">2</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-8">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-8">&#182;</a>
+              </div>
+              <p>Properties to be preserved when extracting via a CSS selector</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-property">@_props</span> = [<span class="hljs-string">'children'</span>, <span class="hljs-string">'tagName'</span>, <span class="hljs-string">'innerText'</span>, <span class="hljs-string">'innerHTML'</span>, <span class="hljs-string">'id'</span>, <span class="hljs-string">'attributes'</span>]
+
+    <span class="hljs-attribute">_mutate</span>:<span class="hljs-function"> -&gt;</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-9">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-9">&#182;</a>
+              </div>
+              <p>Extract elements via a CSS selector</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">if</span> <span class="hljs-keyword">typeof</span> <span class="hljs-property">@_arguments</span>[<span class="hljs-number">0</span>] <span class="hljs-keyword">is</span> <span class="hljs-string">'string'</span>
+            <span class="hljs-property">@_sentence</span>.properties.conditions.push createCondition <span class="hljs-property">@_arguments</span>[<span class="hljs-number">0</span>]
+            selector = <span class="hljs-property">@_arguments</span>[<span class="hljs-number">0</span>]
+            handler = <span class="hljs-property">@_arguments</span>[<span class="hljs-number">1</span>]
+            args =
+                <span class="hljs-attribute">selector</span>: selector
+                <span class="hljs-attribute">preserve</span>: <span class="hljs-property">@_props</span>[..]
+
+            <span class="hljs-property">@_sentence</span>.properties.actions.push <span class="hljs-function"><span class="hljs-params">(page)</span> -&gt;</span>
+                <span class="hljs-function"><span class="hljs-title">extractor</span> = <span class="hljs-params">(query)</span> -&gt;</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-10">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-10">&#182;</a>
+              </div>
+              <p>Function to recursively filter a list of HTML elements</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>                    <span class="hljs-function"><span class="hljs-title">filter</span> = <span class="hljs-params">(elems)</span> -&gt;</span>
+                        results = []
+                        <span class="hljs-keyword">for</span> elem <span class="hljs-keyword">in</span> elems
+                            obj = {}
+                            <span class="hljs-keyword">for</span> key <span class="hljs-keyword">in</span> query.preserve
+                                <span class="hljs-keyword">if</span> key <span class="hljs-keyword">is</span> <span class="hljs-string">'children'</span> <span class="hljs-keyword">or</span> key <span class="hljs-keyword">is</span> <span class="hljs-string">'childNodes'</span>
+                                    obj[key] = filter(elem[key])
+                                <span class="hljs-keyword">else</span>
+                                    obj[key] = elem[key]
+
+                            results.push obj
+
+                        results
+
+                    filter <span class="hljs-built_in">document</span>.querySelectorAll(query.selector)
+
+
+                page.evaluate extractor, handler, args</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-11">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-11">&#182;</a>
+              </div>
+              <p>Extract via a function</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">else</span>
+            extractor = <span class="hljs-property">@_arguments</span>[<span class="hljs-number">0</span>]
+            handler = <span class="hljs-property">@_arguments</span>[<span class="hljs-number">1</span>]
+            <span class="hljs-property">@_sentence</span>.properties.actions.push <span class="hljs-function"><span class="hljs-params">(page)</span> -&gt;</span>
+                page.evaluate extractor, handler
+
+    <span class="hljs-attribute">_validate</span>: <span class="hljs-function"><span class="hljs-params">(argument)</span> -&gt;</span>
+        <span class="hljs-keyword">if</span> <span class="hljs-property">@_arguments</span>.length <span class="hljs-keyword">is</span> <span class="hljs-number">0</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">typeof</span> argument <span class="hljs-keyword">is</span> <span class="hljs-string">'string'</span> <span class="hljs-keyword">or</span> <span class="hljs-string">'function'</span>
+        <span class="hljs-keyword">else</span> <span class="hljs-keyword">typeof</span> argument <span class="hljs-keyword">is</span> <span class="hljs-string">'function'</span>
+
+    <span class="hljs-attribute">and</span>: <span class="hljs-function"><span class="hljs-params">(argument)</span> -&gt;</span> <span class="hljs-property">@_push</span> argument
+    <span class="hljs-attribute">then</span>: <span class="hljs-function"><span class="hljs-params">(argument)</span> -&gt;</span> <span class="hljs-property">@_push</span> argument
+    <span class="hljs-attribute">process</span>: <span class="hljs-function"><span class="hljs-params">(argument)</span> -&gt;</span> <span class="hljs-property">@_push</span> argument
+    <span class="hljs-attribute">handle</span>: <span class="hljs-function"><span class="hljs-params">(argument)</span> -&gt;</span> <span class="hljs-property">@_push</span> argument</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-12">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-12">&#182;</a>
+              </div>
+              <p>select().properties(x, y, z).of(‘selector’)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">of</span>: <span class="hljs-function"><span class="hljs-params">(argument)</span> -&gt;</span>
+        <span class="hljs-keyword">if</span> <span class="hljs-property">@_arguments</span>.length &gt; <span class="hljs-number">0</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">throw</span> Error <span class="hljs-string">"Bad grammar: of() after extract()"</span>
+        <span class="hljs-keyword">else</span> <span class="hljs-property">@_push</span> argument
+        @</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-13">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-13">&#182;</a>
+              </div>
+              <p>extract … and then do …</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">do</span>: <span class="hljs-function"><span class="hljs-params">(argument)</span> -&gt;</span>
+        <span class="hljs-keyword">if</span> <span class="hljs-property">@_arguments</span>.length &gt; <span class="hljs-number">1</span> <span class="hljs-keyword">then</span> <span class="hljs-property">@_push</span> argument
+        <span class="hljs-keyword">else</span> <span class="hljs-keyword">throw</span> Error <span class="hljs-string">"Bad grammar: do() before extract() or select()"</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-14">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-14">&#182;</a>
+              </div>
+              <p>extract … from(url) and then …</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">from</span>: <span class="hljs-function"><span class="hljs-params">(argument)</span> -&gt;</span>
+        <span class="hljs-property">@_sentence</span>.from(argument)
+        @
+
+    <span class="hljs-attribute">with</span>: <span class="hljs-function"><span class="hljs-params">(props...)</span> -&gt;</span>
+        properties = props[<span class="hljs-number">0</span>]
+        <span class="hljs-keyword">if</span> <span class="hljs-keyword">typeof</span> properties <span class="hljs-keyword">isnt</span> <span class="hljs-string">'object'</span> <span class="hljs-keyword">or</span> properties <span class="hljs-keyword">not</span> <span class="hljs-keyword">instanceof</span> Array <span class="hljs-keyword">or</span> properties.length &lt;= <span class="hljs-number">0</span>
+            <span class="hljs-keyword">throw</span> Error <span class="hljs-string">"Invalid properties"</span>
+        <span class="hljs-keyword">for</span> property <span class="hljs-keyword">in</span> properties
+            <span class="hljs-keyword">if</span> nodeProperties.indexOf(property) &lt; <span class="hljs-number">0</span>
+                <span class="hljs-keyword">throw</span> Error <span class="hljs-string">"Invalid property: "</span> + property
+        <span class="hljs-property">@_props</span> = properties
+        @
+
+    <span class="hljs-attribute">properties</span>: <span class="hljs-function"><span class="hljs-params">(properties...)</span> -&gt;</span> <span class="hljs-property">@with</span>(properties)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-15">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-15">&#182;</a>
+              </div>
+              <p>Wait for a CSS selector to be satisfied or for a function to return true
+when page has ‘selector’
+Use as <code>when().page().has(-&gt; document.querySelectorAll(&#39;stuff&#39;).length &gt; 5)</code>
+or <code>when().is(&#39;selector&#39;)</code></p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">WaitFor</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Chunk</span></span>
+    <span class="hljs-attribute">_mutate</span>:<span class="hljs-function"> -&gt;</span>
+        <span class="hljs-keyword">if</span> <span class="hljs-keyword">typeof</span> <span class="hljs-property">@_arguments</span>[<span class="hljs-number">0</span>] <span class="hljs-keyword">is</span> <span class="hljs-string">'string'</span>
+            condition = createCondition <span class="hljs-property">@_arguments</span>[<span class="hljs-number">0</span>]
+        <span class="hljs-keyword">else</span>
+            condition = [<span class="hljs-literal">null</span>, <span class="hljs-property">@_arguments</span>[<span class="hljs-number">0</span>]]
+
+        <span class="hljs-property">@_sentence</span>.properties.conditions.push condition
+
+    <span class="hljs-attribute">_validate</span>: <span class="hljs-function"><span class="hljs-params">(argument)</span> -&gt;</span>
+        <span class="hljs-keyword">typeof</span> argument <span class="hljs-keyword">is</span> <span class="hljs-string">'string'</span> <span class="hljs-keyword">or</span> <span class="hljs-string">'function'</span>
+
+    <span class="hljs-attribute">has</span>: <span class="hljs-function"><span class="hljs-params">(argument)</span> -&gt;</span> <span class="hljs-property">@_push</span> argument
+    <span class="hljs-attribute">is</span>: <span class="hljs-function"><span class="hljs-params">(argument)</span> -&gt;</span> <span class="hljs-property">@_push</span> argument
+    <span class="hljs-attribute">ready</span>: <span class="hljs-function"><span class="hljs-params">(argument)</span> -&gt;</span> <span class="hljs-property">@_push</span> argument
+    <span class="hljs-attribute">for</span>: <span class="hljs-function"><span class="hljs-params">(argument)</span> -&gt;</span> <span class="hljs-property">@_push</span> argument</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-16">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-16">&#182;</a>
+              </div>
+              <p>Allow crossover to sentence.from() for just one invokation, to permit
+syntax like <code>when().page(&#39;index.html&#39;).has(&#39;h2.headline&#39;)</code></p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">page</span>: <span class="hljs-function"><span class="hljs-params">(argument)</span> -&gt;</span> 
+        <span class="hljs-property">@_sentence</span>.from(argument)
+        @
+    
+    <span class="hljs-attribute">url</span>: <span class="hljs-function"><span class="hljs-params">(argument)</span> -&gt;</span> <span class="hljs-property">@page</span>(argument)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-17">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-17">&#182;</a>
+              </div>
+              <p>Execute code against a page object directly. The callback is provided with a
+page object whose <code>evaluate</code> method you may invoke yourself.
+`execute((page) -&gt; page.evaluate extractor, handler, args)
+TODO accept three arguments in the form of extractor, handler [,args] to skip
+the page.evaluate call.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Execute</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Chunk</span></span>
+    <span class="hljs-attribute">_validate</span>: <span class="hljs-function"><span class="hljs-params">(argument)</span> -&gt;</span>
+        <span class="hljs-keyword">typeof</span> argument <span class="hljs-keyword">is</span> <span class="hljs-string">'function'</span>
+
+    <span class="hljs-attribute">_mutate</span>:<span class="hljs-function"> -&gt;</span>
+        <span class="hljs-property">@_sentence</span>.properties.actions.push <span class="hljs-property">@_arguments</span>[<span class="hljs-number">0</span>]</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-18">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-18">&#182;</a>
+              </div>
+              <p>Assign a timeout handler.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Otherwise</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Chunk</span></span>
+    <span class="hljs-attribute">_validate</span>: <span class="hljs-function"><span class="hljs-params">(argument)</span> -&gt;</span>
+        <span class="hljs-keyword">typeof</span> argument <span class="hljs-keyword">is</span> <span class="hljs-string">'function'</span>
+
+    <span class="hljs-attribute">_mutate</span>:<span class="hljs-function"> -&gt;</span>
+        <span class="hljs-property">@_sentence</span>.properties.errorHandlers.push <span class="hljs-property">@_arguments</span>[<span class="hljs-number">0</span>]</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-19">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-19">&#182;</a>
+              </div>
+              <p>Set the request URL</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">From</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Chunk</span></span>
+    <span class="hljs-attribute">_validate</span>: <span class="hljs-function"><span class="hljs-params">(argument)</span> -&gt;</span>
+        <span class="hljs-keyword">typeof</span> argument <span class="hljs-keyword">is</span> <span class="hljs-string">'string'</span>
+
+    <span class="hljs-attribute">_mutate</span>:<span class="hljs-function"> -&gt;</span>
+        <span class="hljs-property">@_sentence</span>.properties.url = <span class="hljs-property">@_arguments</span>[<span class="hljs-number">0</span>]</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-20">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-20">&#182;</a>
+              </div>
+              <p>Export Grammar classes as well as our new Chunks</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-built_in">module</span>.<span class="hljs-built_in">exports</span> =
+    <span class="hljs-attribute">Sentence</span>: Sentence
+    <span class="hljs-attribute">Chunk</span>: Chunk
+    <span class="hljs-attribute">Timeout</span>: Timeout
+    <span class="hljs-attribute">WaitFor</span>: WaitFor
+    <span class="hljs-attribute">Execute</span>: Execute
+    <span class="hljs-attribute">Otherwise</span>: Otherwise
+    <span class="hljs-attribute">From</span>: From
+    <span class="hljs-attribute">Extract</span>: Extract</pre></div></div>
+            
+        </li>
+        
+    </ul>
+  </div>
+</body>
+</html>

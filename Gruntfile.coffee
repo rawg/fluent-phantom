@@ -4,6 +4,7 @@ module.exports = (grunt) ->
     grunt.loadNpmTasks 'grunt-contrib-watch'
     grunt.loadNpmTasks 'grunt-mocha-test'
     grunt.loadNpmTasks 'grunt-express'
+    grunt.loadNpmTasks 'grunt-docco'
 
 
     grunt.initConfig
@@ -20,11 +21,17 @@ module.exports = (grunt) ->
                 options:
                     port: 3050
                     bases: 'test/resources'
-
+        
+        docco:
+            debug:
+                src: ['lib/**/*.coffee']
+                options:
+                    output: 'docs/'
         watch:
             files: ['lib/**/*.coffee', 'test/**/*.coffee']
             tasks: ['express:server', 'mochaTest:test']
 
     grunt.registerTask 'default', ['express', 'mochaTest']
     grunt.registerTask 'server', ['express', 'express-keepalive']
+    grunt.registerTask 'docs', ['docco']
 
