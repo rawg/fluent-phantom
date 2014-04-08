@@ -151,6 +151,7 @@ binder = (phantom) ->
             @_page = null
             @_timeout = 3000
             @_bindConsole = false
+            @_debug = false
 
         # Add a callback that must return true before emitting ready
         condition: (callback) ->
@@ -184,7 +185,22 @@ binder = (phantom) ->
             else
                 @_bindConsole
             
+        # Enable or disable debugging
+        debug: (isOn) ->
+            if typeof isOn is 'boolean'
+                @_debug = isOn
+                if @_debug
+                    for key, event of events
+                        do (event) ->
+                            @addListener event, console.log event
+                else
+                    for key, event of events
+                        do (event) ->
+                            @removeListener event, console.log event
+                @
 
+            else
+                @_debug
 
         # Set or get the URL
         url: (url) ->
