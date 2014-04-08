@@ -18,7 +18,7 @@ module.exports = (grunt) ->
         express:
             server:
                 options:
-                    port: 3030
+                    port: 3050
                     bases: 'test/resources'
 
         watch:
