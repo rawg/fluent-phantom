@@ -91,9 +91,10 @@ class Extract extends Chunk
     handle: (argument) -> @_push argument
     
     # select().properties(x, y, z).of('selector')
-    of: (argument) -> 
+    of: (argument) ->
         if @_arguments.length > 0 then throw Error "Bad grammar: of() after extract()"
         else @_push argument
+        @
 
     # extract ... and then do ...
     do: (argument) ->

@@ -76,7 +76,8 @@ binder = (phantom) ->
             if typeof arg is 'number' then @timeout(arg)
             else @when(arg)
 
-        # Allow crossover to an immediately previous Extract clause for extract('selector').and(->).with(props)
+        # Allow crossover to an immediately previous Extract clause for 
+        # extract('selector').and(->).with(props)
         with: (args...) ->
             for idx in [@_chunks.length - 1 .. 0]
                 if @_chunks[idx] instanceof Grammar.Extract
@@ -84,7 +85,7 @@ binder = (phantom) ->
                     return @
             @
 
-        # Build a request
+        # Build a request, applying all changes described in the grammar.
         build: ->
             # Extract information provided through all chunks
             @_mutate()
@@ -100,7 +101,7 @@ binder = (phantom) ->
 
             req
 
-        # Build and execute a request
+        # Build and immediately execute a request
         execute: (url) ->
             @from url
             req = @build()
@@ -138,6 +139,9 @@ binder = (phantom) ->
             clearInterval @_interval
             @_phantom.exit()
 
+        log = (msg) ->
+            console.log msg
+
         constructor: ->
             @_url = ''
             @_conditions = []
@@ -146,6 +150,7 @@ binder = (phantom) ->
             @_phantom = null
             @_page = null
             @_timeout = 3000
+            @_bindConsole = false
 
         # Add a callback that must return true before emitting ready
         condition: (callback) ->
@@ -165,6 +170,21 @@ binder = (phantom) ->
                 this
             else
                 @_timeout
+
+        # Toggle binding console.log to the PhantomJS instance's console.log.
+        console: (bind) ->
+            if typeof bind is 'boolean'
+                @_bindConsole = bind
+                if @_bindConsole
+                    @addListener events.CONSOLE, log
+                else
+                    @removeListener events.CONSOLE, log
+                @
+
+            else
+                @_bindConsole
+            
+
 
         # Set or get the URL
         url: (url) ->
