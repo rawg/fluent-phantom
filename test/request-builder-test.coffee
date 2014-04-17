@@ -28,6 +28,10 @@ describe 'A request builder', ->
         req = request.create().from('#').build()
         req._url.should.equal('#')
 
+    it 'should not allow bad urls', ->
+        req = request.create().from('#').url().build()
+        req._url.should.equal('#')
+
     it 'should allow cross over between extract and from', ->
         req = request.create()
             .extract('#headlines li')
