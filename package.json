@@ -1,7 +1,7 @@
 {
   "name": "fluent-phantom",
   "version": "0.2.0",
-  "description": "A simple DSL for scraping web content using PhantomJS",
+  "description": "A fluent interface to easily scrape web content - including that generated dynamically - in Node with the PhantomJS headless browser.",
   "main": "index.js",
   "scripts": {
     "test": "grunt test"

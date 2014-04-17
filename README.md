@@ -19,7 +19,7 @@ The builder is a "sentence" that can contain many chunks that describe how a req
 The module should be easy to use.  Just include it and describe your scraping actions.  The examples are in CoffeeScript, but you get the point.
 
 ### Setup
-Include the module with require and create a new request with the ```create()``` method.
+Include the module with require and create a new request with the `create()` method.
 ```coffeescript
 Request = require 'fluent-phantom'
 req = Request.create()
@@ -42,6 +42,25 @@ Request.create()
 
 ### Extracting content using functions
 
+```coffeescript
+Request.create()
+	.when(->
+		# Wait until we have at least 5 headlines
+		document.querySelectorAll('#headlines li').length >= 5
+	)
+	.extract(->
+		# Serialize the text value of the headlines
+		elem.innerText for elem in document.querySelectorAll('#headlines li')
+	)
+	.from('http://example.com/')
+	.and().then((results) ->
+		# Here is where we would actually do something with the results
+		console.log results	
+	)
+	.until(10000)
+	.otherwise(-> console.error "Catastrophic failure")
+	.execute()
+```
 
 ### Waiting for content to be ready
 
