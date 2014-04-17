@@ -1,4 +1,4 @@
 
 require('coffee-script/register');
-require('./lib/fluent-phantom');
+module.exports = require('./lib/fluent-phantom');
 
