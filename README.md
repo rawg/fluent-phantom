@@ -44,7 +44,9 @@ This package is made up of two classes: a `Request` class that wraps the Phantom
 			- [`select()`](#select-function)
 			- [`evaluate()`](#evaluate)
 			- [`run()`](#run)
-	- Waiting for content with `when()`
+	- [Waiting for content with `when()`](#waiting)
+		- [With CSS selectors](#when-css)
+		- [With functions](#when-functions)
 	- Controlling timeouts and errors
 		- otherwise()
 		- timeout()
@@ -60,17 +62,17 @@ This package is made up of two classes: a `Request` class that wraps the Phantom
 ## Builder <a name="builder" />
 ### Initializing a builder with `create()` <a name="initializing" />
 Builders can be created with `new`, but using the package-level `create()` helper is encouraged, as in the following example:
-```
+```coffeescript
 phantom = require 'fluent-phantom'
-phantom.create()
+builder = phantom.create()
 ```
 
 ### Declaring a URL with `from()` <a name="from" />
-#### Builder.from(url)
+#### Builder.from(url: string)
 Synonyms: `url()`
 
-Set the request URL.
-```
+Sets the request URL.
+```coffeescript
 phantom.create().from('http://example.com/')
 ```
 
@@ -79,7 +81,7 @@ The easiest way to scrape content is to call `select()` with a CSS selector and 
 
 Here is an example of extracting all `h3` elements in a container with the id 'headlines':
 
-```
+```coffeescript
 phantom.create()
 	.select('#headlines h3')
 	.from('http://example.com/news')
@@ -93,7 +95,7 @@ phantom.create()
 #### Builder.select(selector: string, [minimum: number]) <a name="select-css" />
 Synonyms: `extract()`
 
-See also: [`when(selector)`](#when-css), [`properties()`](#properties), [`handle()`](#handle)
+See also: [`when()`](#when-css), [`properties()`](#properties), [`handle()`](#handle)
 
 When `select` is invoked with a string, it is assumed to be a CSS selector describing elements to be scraped. When used in this way, `select` will immediately invoke [`when`](#when-css) to automatically wait for the selector to be satisfied. If a number is passed as the second argument, it is treated as a minimum number of elements that must be satisfied and passed to `when`.
 
@@ -118,7 +120,7 @@ Sometimes, a simple CSS selector is not enough to describe the content you want 
 #### Builder.select(extractor: function, [argument: any]) <a name="select-function" />
 Synonyms: `extract()`
 
-See also: [`when(function)`](#when-function), [`handle`](#handle)
+See also: [`when()`](#when-function), [`handle`](#handle)
 
 The `select` method can also accept a function as its first argument. This function will run in the context of the page being scraped within the PhantomJS VM, and its return value will be passed as the first and only argument to [`handle`](#handle) for further processing. 
 
@@ -127,7 +129,7 @@ Because the function body is effectively serialized and deserialized, any closed
 Note that using `select` with a function rather than a CSS selector overrides the use of [`properties`](#properties), and does not automatically cause the `Request` to wait until content is ready. Also note that references in the PhantomJS VM – including those to DOM elements – do not serialize as you might expect. For best results, be sure to return values, not references.
 
 Because DOM elements are references within the PhantomJS VM, in the example below, you won't receive a long list of DOM elements as you might expect:
-```
+```coffeescript
 phantom.create()
 	.select(->
 		document.querySelectorAll '#headlines h3'
@@ -136,7 +138,7 @@ phantom.create()
 ```
 
 To work around this, return values instead of references, like so:
-```
+```coffeescript
 phantom.create()
 	.select(->
 		# Returns an array of objects of the form {id: ..., text: ...}
@@ -158,3 +160,37 @@ This method is named evaluate because it wraps `page.evaluate` in the PhantomJS 
 Synonyms: `invoke()`
 
 For those who already know what they're doing with PhantomJS and only want the convenience of using this module to wait for content to be available, this method accepts a function that receives a PhantomJS `page` object as its only argument for use with, for instance, `page.evaluate`. Use of this is exclusionary to the use of [`select`](#select-function) and [`evaluate`](#evaluate).
+
+### Waiting for content <a name="waiting" />
+
+### With CSS selectors
+The two forms of `when` cause any actions specified by [`handle`](#handle), [`evaluate`](#evaluate), or [`run`](#run) to be suspended until a sentry condition is satisfied or the timeout period set with [`timeout`] has ellapsed. The author's original motivation for using PhantomJS over HTMLUnit or Beautiful Soup was to scrape content generated client-side via a long-polling mechanism. The `when` method is ideal for this as it delays scraping until the content to be scraped is available.
+
+When a sentry condition has been set, the Request will test for it immediately and every ~250ms afterwards until it has been satisfied or the test times out. At each check, the Request will emit the 'checking' event.
+
+#### Builder.when(selector: string, [minimum: number]) <a name="wait-css" />
+See also: [`select()`](#select-css), [`timeout()`](#timeout)
+
+Causes execution to be delayed until the document has at least one element satisfying the provided CSS selector using `document.querySelectorAll()`. If a minimum is provided, execution will be delayed until the minimum has been reached.
+
+This form of `when` is automatically invoked when using `select` with a CSS selector.
+
+### With functions
+#### Builder.when(sentry: function, [argument: any]) <a name="wait-function" />
+See also: [`select()`](#select-function), [`timeout()`](#timeout)
+
+Causes execution to be delayed until the sentry function provided returns true. The function will be invoked in the context of the page within the PhantomJS runtime and, as described in the documention for [using `select` with functions](#select-function), any closed over scope will be lost. A second, JSON-serializable parameter may be provided to be passed as the first argument to the sentry function when invoked.
+
+If multiple parameters are needed, pass them in one object, as is done in this adaptation from the source for `Builder.when()`:
+```coffeescript
+argument =
+	minimum: minimum
+	query: condition
+
+callback = (args) -> document.querySelectorAll(args.query).length >= args.minimum
+
+builder.when(callback, argument)
+```
+
+
+
