@@ -6,110 +6,18 @@
 # We require EventEmitter to be inherited by Request
 Emitter = require('events').EventEmitter
 
-# A helper function to provide the current time
+
+# A helper to provide the current time
 now = ->
     (new Date).getTime()
 
 
+# The module exports are defined in this function to make it easy to inject a 
+# mock for unit testing.
 binder = (phantom) ->
+
+    # Use the real PhantomJS bridge if an alternative is not injected
     phantom = if typeof phantom == 'object' then phantom else require 'phantom'
-
-    # A fluent builder
-    class Builder
-
-        constructor: ->
-            super()
-            @properties = 
-                conditions: []
-                actions: []
-                errorHandlers: []
-                timeout: null
-                url: null
-
-        # Currying keeps access consistent - otherwise you'd have to use 
-        # something like timeout.after(val) instead of timeout().after(val)
-        # and timeout(val)
-        timeout: (val) -> 
-            obj = @_chunk new Grammar.Timeout @
-            obj._push val
-        
-        forever: -> @timeout(0)
-
-        extract: (val) -> 
-            obj = @_chunk new Grammar.Extract @
-            obj._push val
-
-        select: (val) -> @extract val
-
-        when: (val) ->
-            obj = @_chunk new Grammar.WaitFor @
-            obj._push val
-
-        wait: (val) -> @when val
-
-        from: (val) ->
-            obj = @_chunk new Grammar.From @
-            obj._push val
-
-        url: (val) -> @from val
-
-        otherwise: (val) ->
-            obj = @_chunk new Grammar.Otherwise @
-            obj._push val
-
-        evaluate: (val) ->
-            obj = @_chunk new Grammar.Execute @
-            obj._push val
-
-        do: (val) -> @evaluate val
-
-        # Conditional synonym: until(1000) should be interpreted as setting
-        # the request timeout to 1s, but until('selector') and until(->) should
-        # be understood as synonymous with when().
-        until: (arg) ->
-            if typeof arg is 'number' then @timeout(arg)
-            else @when(arg)
-
-        # Allow crossover to an immediately previous Extract clause for 
-        # extract('selector').and(->).with(props)
-        with: (args...) ->
-            for idx in [@_chunks.length - 1 .. 0]
-                if @_chunks[idx] instanceof Grammar.Extract
-                    @_chunks[idx].with(args)
-                    return @
-            @
-
-        # Build a request, applying all changes described in the grammar.
-        build: ->
-            # Extract information provided through all chunks
-            @_mutate()
-            req = new Request
-            if @properties.timeout? and @properties.timeout >= 0 then req.timeout @properties.timeout
-            if @properties.url then req.url @properties.url
-
-            req.condition(condition) for condition in @properties.conditions
-            for callback in @properties.errorHandlers
-                req.on(events.TIMEOUT, callback)
-                req.on(events.REQUEST_FAILURE, callback)
-            req.action(action) for action in @properties.actions
-
-            req
-
-        # Build and immediately execute a request
-        execute: (url) ->
-            @from url
-            req = @build()
-            req.execute()
-            req
-
-        _terminated: ->
-            # After the first chunk has been applied, expand to allow joining
-            # chunks with `and()`
-            #
-            # Not so sure I like this...
-            if typeof @and is 'undefined'
-                @and = -> @
-
 
     # Events that may be emitted by a Request
     events =
@@ -124,7 +32,234 @@ binder = (phantom) ->
         CHECKING: 'checking'
         CONSOLE: 'console'
     
-    
+    # Default values for the request builder
+    builders =
+        when:
+            css: 'when-css'
+            function: 'when-func'
+            none: 'when-none'
+        action:
+            css: 'action-css'
+            parts: 'action-parts'
+            evaluate: 'action-evaluate'
+            function: 'action-function'
+
+
+    # Allowable DOM node properties
+    nodeProperties = ['attributes', 'baseURI', 'childElementCount', 'childNodes'
+        ,'classList', 'className', 'dataset', 'dir', 'hidden', 'id', 'innerHTML'
+        ,'innerText', 'lang', 'localName', 'namespaceURI', 'nodeName', 'nodeType'
+        ,'nodeValue', 'outerHTML', 'outerText', 'prefix', 'style', 'tabIndex'
+        ,'tagName', 'textContent', 'title', 'type', 'value', 'children'
+    ]
+
+    # A fluent builder
+    class Builder
+        constructor: ->
+            @_build =
+                when: builders.when.none
+                action: builders.action.function
+            
+            @_props = 
+                condition:
+                    callback: null
+                    argument: null
+                action: -> console.log "No default action provided"
+                scraper:
+                    extractor: null
+                    handler: null
+                    argument: null
+                    properties: ['children', 'tagName', 'innerText', 'innerHTML', 'id', 'attributes']
+                    query: null
+                timeout:
+                    duration: 3000
+                    handler: -> console.error "Timeout"
+                url: null
+
+
+        # Set a timeout duration
+        until: (timeout) -> @for timeout
+        timeout: (timeout) -> @for timeout
+        for: (timeout) ->
+            if typeof timeout isnt 'number' then throw Error "Expected timeout to be a number"
+            @_props.timeout.duration = timeout
+            @
+
+        # Never timeout
+        forever: -> @for 0
+
+        # Timeout after one tick
+        immediately: -> @for 100
+
+        otherwise: (callback) ->
+            if typeof callback isnt 'function' then throw Error "Expected timeout handler to be a function"
+            @_props.timeout.handler = callback
+            @
+
+        # Set the URL
+        url: (url) -> @from url
+        from: (url) ->
+            if typeof url isnt 'string' then throw Error "Expected URL to be a string"
+            @_props.url = url
+            @
+
+        # Create an action to be run using Phantom's `page.evaluate`
+        evaluate: (scraper, handler, argument) ->
+            if typeof scraper isnt 'function' then throw Error "Expected scraping function"
+            if typeof handler isnt 'function' then throw Error "Expected handler function"
+            
+            @_build.action = builders.action.evaluate
+
+            @_props.action = (page) -> page.evaluate scraper, handler, argument
+            @
+
+
+        # Run a generic action that receives a Phantom page object as its only argument.
+        invoke: (callback) -> @run(callback)
+        run: (callback) ->
+            if typeof callback isnt 'function' then throw Error "Expected action to be a function"
+            @_build.action = builders.action.function
+            @_props.action = callback
+            @
+
+        # Assign a condition that must be satisfied before scraping content
+        when: (condition, argument) ->
+            if typeof condition is 'string'
+                @_build.when = builders.when.css
+
+                count = if typeof argument is 'number' then argument else 1
+                @_props.condition = 
+                    callback: (args) -> document.querySelectorAll(args.query).length > args.count
+                    argument:
+                        count: count
+                        query: condition
+
+            else if typeof condition is 'function'
+                @_build.when = builders.when.function
+
+                @_props.condition =
+                    callback: condition
+
+                if typeof argument isnt 'undefined'
+                    @_props.condition.argument = argument
+
+            else
+                throw Error "Invalid condition"
+
+            @
+
+        # Select content on the page by either a CSS selector or a function to run
+        # in the context of the page with access to `window` and `document`.
+        select: (selector, argument) ->
+            if typeof selector is 'string'
+                @_build.action = builders.action.css
+                @_props.scraper.query = selector
+                @when selector
+
+            else if typeof selector is 'function'
+                @_build.action = builders.action.parts
+                @_props.scraper.extractor = selector
+
+            else
+                throw Error "Invalid selector"
+
+            if typeof argument isnt 'undefined'
+                @_props.scraper.argument = argument
+
+            @
+
+        # Describe how to handle scraped results
+        process: (handler) -> @handle handler
+        receive: (handler) -> @handle handler
+        handle: (handler) ->
+            @_props.scraper.handler = handler
+            @
+
+        properties: (props...) -> @members props
+        members: (properties...) ->
+            @_props.scraper.properties = []
+            traverse = (props) ->
+                if typeof props is 'object' and props instanceof Array and props.length > 0
+                    for prop in props
+                        if typeof prop is 'string'
+                            if nodeProperties.indexOf(prop) < 0 then throw Error "Invalid property: #{prop}"
+                            @_props.scraper.properties.push prop
+                        else if typeof prop is 'object'
+                            traverse prop
+            traverse properties
+            @
+
+        # Terms that have no effect but lend a more fluent feel
+        and: -> @
+        then: -> @
+        of: -> @
+
+        # Build a request object as described
+        build: ->
+            req = new Request
+            
+            # Assign the URL
+            if typeof @_props.url is 'string' then req.url @_props.url
+            
+            # Handle timeouts and other errors
+            if @_props.timeout.duration? and @_props.timeout.duration >= 0 then req.timeout @_props.timeout.duration
+            req.on events.TIMEOUT, @_props.timeout.handler
+            req.on events.REQUEST_FAILURE, @_props.timeout.handler
+
+            # Build an appropriate sentry
+            switch @_build.when
+                when builders.when.function
+                    req.condition @_props.condition.callback, @_props.condition.argument
+                
+                when builders.when.css
+                    condition = (args) -> document.querySelectorAll(args.query) >= args.count
+                    req.condition condition, @_props.condition.argument
+            
+            # Build an action to invoke when ready
+            switch @_build.action
+                when builders.action.function, builders.action.evaluate
+                    req.action @_props.action
+                
+                when builders.action.parts
+                    [extractor, handler, argument] = @_props.scraper
+                    req.action (page) -> page.evaluate extractor, handler, argument
+
+                when builders.action.css
+                    args =
+                        query: @_props.scraper.query
+                        preserve: @_props.scraper.properties
+                    
+                    handler = @_props.scraper.handler
+
+                    extractor = (args) ->
+                        filter = (elems) ->
+                            results = []
+                            for elem in elems
+                                obj = {}
+                                for key in args.preserve
+                                    if key is 'children' or key is 'childNodes'
+                                        obj[key] = filter(elem[key])
+                                    else
+                                        obj[key] = elem[key]
+
+                                results.push obj
+
+                            results
+
+                        filter document.querySelectorAll(args.query)
+                    
+                    req.action (page) -> page.evaluate extractor, handler, args
+
+            req
+
+        # Build and immediately execute a request
+        execute: (url) ->
+            if typeof url isnt 'undefined' then @from url
+            req = @build()
+            req.execute()
+            req
+
+
     # A request
     class Request
         # Private method to clean up open Phantom instances and notify listeners
@@ -241,7 +376,7 @@ binder = (phantom) ->
                                 @emit events.CHECKING
 
                                 # Timeout
-                                if @_timeout > 0 && now() - start > @_timeout
+                                if @_timeout > 0 and now() - start > @_timeout
                                     @emit events.TIMEOUT
                                     end.call this
 
@@ -257,6 +392,7 @@ binder = (phantom) ->
 
 
                             @_interval = setInterval tick, 250
+                            tick()
 
                         else                            # Request succeeded and no verifications necessary - proceed!
                             @emit events.READY

@@ -17,6 +17,8 @@ Retrieves elements that match a CSS selector using `querySelectorAll()`. Automat
 
 ### select(selector: function, [argument: any])
 
+### handle(handler: function)
+synonyms: `process()`, `receive()`
 
 ### when(selector: string, [count: number])
 
@@ -30,6 +32,8 @@ synonyms: `members()`
 synonyms: `url()`
 
 ### evaluate(scraper: function, handler: function. [argument: any])
+excludes `select()` and `handle()`
+
 
 ### for(milliseconds: number)
 synonyms: `until()`, `timeout()`
@@ -41,4 +45,5 @@ synonyms: `until()`, `timeout()`
 ### otherwise(handler: function)
 
 
+### Terms that don't matter: and, then, of
 

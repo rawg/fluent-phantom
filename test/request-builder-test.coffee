@@ -2,7 +2,7 @@
 assert = require 'assert'
 should = require 'should'
 mock = require './mock-phantom'
-request = require('../lib/fluent-phantom').inject(new mock.Phantom)
+request = require('../index.coffee').inject(new mock.Phantom)
 
 delay = (ms, func) -> setTimeout func, ms
 
@@ -28,17 +28,4 @@ describe 'A request builder', ->
         req = request.create().from('#').build()
         req._url.should.equal('#')
 
-    it 'should not allow bad urls', ->
-        req = request.create().from('#').url().build()
-        req._url.should.equal('#')
-
-    it 'should allow cross over between extract and from', ->
-        req = request.create()
-            .extract('#headlines li')
-            .from('#')
-            .and()
-            .process((result) -> true)
-            .build()
-
-        req._url.should.equal('#')
 

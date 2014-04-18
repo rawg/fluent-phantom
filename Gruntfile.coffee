@@ -20,7 +20,7 @@ module.exports = (grunt) ->
                     timeout: 30000
                     require: ['should', 'coffee-script/register']
                 #src: ['test/**/*.coffee']
-                src: 'test/request-test.coffee'
+                src: ['test/request-test.coffee', 'test/request-builder-test.coffee']
 
         express:
             server:
@@ -33,9 +33,10 @@ module.exports = (grunt) ->
                 src: ['lib/**/*.coffee']
                 options:
                     output: 'docs/'
+
         watch:
-            files: ['lib/**/*.coffee', 'test/**/*.coffee']
-            tasks: ['express:server', 'mochaTest:test']
+            files: ['index.coffee', 'test/**/*.coffee']
+            tasks: ['coffee:compile', 'express:server', 'mochaTest:test']
 
     grunt.registerTask 'default', ['coffee', 'express', 'mochaTest']
     grunt.registerTask 'server', ['express', 'express-keepalive']
