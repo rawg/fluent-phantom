@@ -9,63 +9,36 @@ npm install fluent-phantom
 
 Note that this package depends on the [PhantomJS bridge for Node](https://github.com/sgentle/phantomjs-node), which assumes that you have already installed [PhantomJS](http://phantomjs.org/).
 
-## Overview
-This package has two key components: a `Request` object that manages a `phantom` process and a `Builder` grammar that
-provides a fluent DSL to build requests. The examples below show the use of the fluent builder, which can be instantiated using the package's `create()` method. 
 
-The builder is a "sentence" that can contain many chunks that describe how a request should behave. Each chunk consists of one or many terms, but the specific terms rarely matter - the order of arguments is more important in most cases. For instance, the `select` chunk requires two arguments: an extractor function or a CSS selector, and a handler function that can operate on the results that are brought back from Phantom. These arguments can be provided as `select(extractor).process(handler)`, or in a longer form such as `select(extractor).and().then().process(handler)`. The order of the terms doesn't matter, but each of them may accept an argument, and the order of the arguments does matter (generally).
+## Builder
 
-## Usage
-The module should be easy to use.  Just include it and describe your scraping actions.  The examples are in CoffeeScript, but you get the point.
+### select(selector: string)
+Retrieves elements that match a CSS selector using `querySelectorAll()`. Automatically waits for content to be ready using `when()`. Optionally restricts element properties to those specified in `properties()`.
 
-### Setup
-Include the module with require and create a new request with the `create()` method.
-```coffeescript
-Request = require 'fluent-phantom'
-req = Request.create()
-```
+### select(selector: function, [argument: any])
 
 
-### Extracting content using selectors
-Extracting content by CSS selectors is straightforward - using the `select()` or
-`extract()` grammar will create a request that waits for a selector to exist in 
-the DOM (helpful if it's created by a long-running AJAX request), extract it,
-and pass the results of the selection to a callback.
+### when(selector: string, [count: number])
 
-```coffeescript
-Request.create()
-	.select('#headlines li')
-	.from('http://example.com/')
-	.and().then((results) -> console.log results)
-	.execute()
-```
+### when(condition: function, [argument: any])
 
-### Extracting content using functions
-
-```coffeescript
-Request.create()
-	.when(->
-		# Wait until we have at least 5 headlines
-		document.querySelectorAll('#headlines li').length >= 5
-	)
-	.extract(->
-		# Serialize the text value of the headlines
-		elem.innerText for elem in document.querySelectorAll('#headlines li')
-	)
-	.from('http://example.com/')
-	.and().then((results) ->
-		# Here is where we would actually do something with the results
-		console.log results	
-	)
-	.until(10000)
-	.otherwise(-> console.error "Catastrophic failure")
-	.execute()
-```
-
-### Waiting for content to be ready
+### properties(properties: array) or properties(property, [property2], [...])
+synonyms: `members()`
 
 
-### Handling errors
+### from(url: string)
+synonyms: `url()`
+
+### evaluate(scraper: function, handler: function. [argument: any])
+
+### for(milliseconds: number)
+synonyms: `until()`, `timeout()`
+
+### forever()
+
+### immediately()
+
+### otherwise(handler: function)
 
 
 

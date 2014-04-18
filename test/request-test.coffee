@@ -2,8 +2,9 @@
 assert = require 'assert'
 should = require 'should'
 mock = require './mock-phantom'
+
 phantom = new mock.Phantom
-request = require('../lib/fluent-phantom').inject(phantom)
+request = require('../index.coffee').inject(phantom)
 
 delay = (ms, func) -> setTimeout func, ms
 
@@ -35,17 +36,19 @@ describe 'A request', ->
         req.timeout(2000)
             .url('#')
             .condition(-> sentry)
-            .on('ready', -> done())
+            .action(-> done())
             .execute()
 
         delay 500, -> sentry = true
 
-    it 'should accept conditions as a two item tuple of [arguments: Any, sentry: (Any) => Boolean]', (done) ->
-        sentry = 5
+    it 'should accept arguments to be passed to Phantom for conditions', (done) ->
+        sentry = 2
+
+        condition = (arg) -> sentry + arg >= 10
 
         req = new request.Request
-        req.condition([5, (arg) -> sentry + arg >= 10])
-            .on('ready', -> done())
+        req.condition(condition, 5)
+            .action(-> done())
             .execute()
 
         delay 500, -> sentry = 5
@@ -57,10 +60,8 @@ describe 'A request', ->
             .url('#')
             .condition(-> false)
             .on('timeout', -> done())
-            .on('ready', -> should.fail 'timeout', 'ready', 'Expected timeout but received ready instead')
+            .action(-> should.fail 'timeout', 'ready', 'Expected timeout but received ready instead')
             .execute()
-
-
 
     it 'should invoke phantom methods during execution', (done) ->
         phEvents = ['createPage', 'open', 'exit']
@@ -71,7 +72,7 @@ describe 'A request', ->
             should.fail(keys, phEvents, 'Not all events were emitted. Only received ' + keys.join ', ')
 
         req = new request.Request
-        req.url('#').timeout(1500)
+        req.url('#').timeout(1500).action(-> )
 
         for event in phEvents
             do (event) ->
@@ -86,7 +87,7 @@ describe 'A request', ->
         phantom.once 'exit', -> done()
 
         req = new request.Request
-        req.execute()
+        req.action(-> ).execute()
 
     it 'should invoke phantom.exit() after timing out', (done) ->
         phantom.once 'exit', -> done()
@@ -94,6 +95,7 @@ describe 'A request', ->
         req = new request.Request
         req.timeout(500)
         req.condition -> false
+        req.action(->)
         req.execute()
 
     it 'should invoke phantom.exit() after satisfying a condition', (done) ->
@@ -102,6 +104,7 @@ describe 'A request', ->
         sentry = false
         req = new request.Request
         req.condition -> sentry
+        req.action ->
         req.timeout 2000
 
         delay 500, ->
