@@ -50,7 +50,8 @@ binder = (phantom) ->
         ,'classList', 'className', 'dataset', 'dir', 'hidden', 'id', 'innerHTML'
         ,'innerText', 'lang', 'localName', 'namespaceURI', 'nodeName', 'nodeType'
         ,'nodeValue', 'outerHTML', 'outerText', 'prefix', 'style', 'tabIndex'
-        ,'tagName', 'textContent', 'title', 'type', 'value', 'children'
+        ,'tagName', 'textContent', 'title', 'type', 'value', 'children', 'href'
+        ,'src'
     ]
 
     # A fluent builder
@@ -69,7 +70,7 @@ binder = (phantom) ->
                     extractor: null
                     handler: null
                     argument: null
-                    properties: ['children', 'tagName', 'innerText', 'innerHTML', 'id', 'attributes']
+                    properties: ['children', 'tagName', 'innerText', 'innerHTML', 'id', 'attributes', 'href', 'src', 'className']
                     query: null
                 timeout:
                     duration: 3000
@@ -150,11 +151,12 @@ binder = (phantom) ->
 
         # Select content on the page by either a CSS selector or a function to run
         # in the context of the page with access to `window` and `document`.
+        extract: (selector, argument) -> @select(selector, argument)
         select: (selector, argument) ->
             if typeof selector is 'string'
                 @_build.action = builders.action.css
                 @_props.scraper.query = selector
-                @when selector
+                @when selector, argument
 
             else if typeof selector is 'function'
                 @_build.action = builders.action.parts

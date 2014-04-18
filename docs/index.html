@@ -172,7 +172,8 @@ mock for unit testing.</p>
         ,<span class="hljs-string">'classList'</span>, <span class="hljs-string">'className'</span>, <span class="hljs-string">'dataset'</span>, <span class="hljs-string">'dir'</span>, <span class="hljs-string">'hidden'</span>, <span class="hljs-string">'id'</span>, <span class="hljs-string">'innerHTML'</span>
         ,<span class="hljs-string">'innerText'</span>, <span class="hljs-string">'lang'</span>, <span class="hljs-string">'localName'</span>, <span class="hljs-string">'namespaceURI'</span>, <span class="hljs-string">'nodeName'</span>, <span class="hljs-string">'nodeType'</span>
         ,<span class="hljs-string">'nodeValue'</span>, <span class="hljs-string">'outerHTML'</span>, <span class="hljs-string">'outerText'</span>, <span class="hljs-string">'prefix'</span>, <span class="hljs-string">'style'</span>, <span class="hljs-string">'tabIndex'</span>
-        ,<span class="hljs-string">'tagName'</span>, <span class="hljs-string">'textContent'</span>, <span class="hljs-string">'title'</span>, <span class="hljs-string">'type'</span>, <span class="hljs-string">'value'</span>, <span class="hljs-string">'children'</span>
+        ,<span class="hljs-string">'tagName'</span>, <span class="hljs-string">'textContent'</span>, <span class="hljs-string">'title'</span>, <span class="hljs-string">'type'</span>, <span class="hljs-string">'value'</span>, <span class="hljs-string">'children'</span>, <span class="hljs-string">'href'</span>
+        ,<span class="hljs-string">'src'</span>
     ]</pre></div></div>
             
         </li>
@@ -203,7 +204,7 @@ mock for unit testing.</p>
                     <span class="hljs-attribute">extractor</span>: <span class="hljs-literal">null</span>
                     <span class="hljs-attribute">handler</span>: <span class="hljs-literal">null</span>
                     <span class="hljs-attribute">argument</span>: <span class="hljs-literal">null</span>
-                    <span class="hljs-attribute">properties</span>: [<span class="hljs-string">'children'</span>, <span class="hljs-string">'tagName'</span>, <span class="hljs-string">'innerText'</span>, <span class="hljs-string">'innerHTML'</span>, <span class="hljs-string">'id'</span>, <span class="hljs-string">'attributes'</span>]
+                    <span class="hljs-attribute">properties</span>: [<span class="hljs-string">'children'</span>, <span class="hljs-string">'tagName'</span>, <span class="hljs-string">'innerText'</span>, <span class="hljs-string">'innerHTML'</span>, <span class="hljs-string">'id'</span>, <span class="hljs-string">'attributes'</span>, <span class="hljs-string">'href'</span>, <span class="hljs-string">'src'</span>, <span class="hljs-string">'className'</span>]
                     <span class="hljs-attribute">query</span>: <span class="hljs-literal">null</span>
                 <span class="hljs-attribute">timeout</span>:
                     <span class="hljs-attribute">duration</span>: <span class="hljs-number">3000</span>
@@ -378,11 +379,12 @@ in the context of the page with access to <code>window</code> and <code>document
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>        <span class="hljs-attribute">select</span>: <span class="hljs-function"><span class="hljs-params">(selector, argument)</span> -&gt;</span>
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-attribute">extract</span>: <span class="hljs-function"><span class="hljs-params">(selector, argument)</span> -&gt;</span> <span class="hljs-property">@select</span>(selector, argument)
+        <span class="hljs-attribute">select</span>: <span class="hljs-function"><span class="hljs-params">(selector, argument)</span> -&gt;</span>
             <span class="hljs-keyword">if</span> <span class="hljs-keyword">typeof</span> selector <span class="hljs-keyword">is</span> <span class="hljs-string">'string'</span>
                 <span class="hljs-property">@_build</span>.action = builders.action.css
                 <span class="hljs-property">@_props</span>.scraper.query = selector
-                <span class="hljs-property">@when</span> selector
+                <span class="hljs-property">@when</span> selector, argument
 
             <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> <span class="hljs-keyword">typeof</span> selector <span class="hljs-keyword">is</span> <span class="hljs-string">'function'</span>
                 <span class="hljs-property">@_build</span>.action = builders.action.parts
