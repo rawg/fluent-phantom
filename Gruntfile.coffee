@@ -19,7 +19,6 @@ module.exports = (grunt) ->
                     reporter: 'spec'
                     timeout: 30000
                     require: ['should', 'coffee-script/register']
-                #src: ['test/**/*.coffee']
                 src: ['test/request-test.coffee', 'test/request-builder-test.coffee', 'test/functional-test.coffee']
 
         express:
@@ -30,7 +29,7 @@ module.exports = (grunt) ->
         
         docco:
             debug:
-                src: ['lib/**/*.coffee']
+                src: ['index.coffee']
                 options:
                     output: 'docs/'
 
