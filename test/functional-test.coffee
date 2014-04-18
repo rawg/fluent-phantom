@@ -1,15 +1,34 @@
 
+# Functional tests against a local web server (see test/resources/*)
+
+
 {sleep, usleep} = require 'sleep'
 assert = require 'assert'
 should = require 'should'
-request = require('../lib/fluent-phantom')
+request = require '../index.coffee'
 
+
+# First, we define several helpers
+# Simple content extractor 
+extractor = (query) ->
+    results = document.querySelectorAll query
+    for index, result of results when result.id?
+        innerText: result.innerText
+        children: result.children
+        id: result.id
+        tagName: result.tagName
+        innerHTML: result.innerHTML
+        attributes: result.attributes
+
+# Verify a list of headlines and exit
 handler = (done) ->
     (results) ->
         results.length.should.be.above 5  # Actually 10...
-        results[0].innerText.should.equal 'Headline 1'
+        for index, result of results
+            result.innerText.should.equal 'Headline ' + (parseInt(index) + 1)
         done()
 
+# Error handler to force test failure
 fail = (done) ->
     ->
         should.fail 'Timed out'
@@ -18,129 +37,116 @@ fail = (done) ->
 uri = 'http://localhost:3050/index.html'
 
 describe 'A live request', ->
+    # These crappy 1s delays in `before()` and `afterEach()` prevent an EADDRINUSE error that's bubbling up
+    # from grunt-express or PhantomJS.
     before ->
         sleep 1
 
     afterEach ->
-        # This crappy 1s delay prevents an EADDRINUSE error that's bubbling up
-        # from grunt-express or PhantomJS.
         sleep 1
 
-    # This test works... sometimes. WTH?
-    it.skip 'should extract results using functions', (done) ->
-        req = request.create()
-            .when(-> 
-                document.querySelectorAll('#headlines li').length >= 5
-            )
-            .extract(-> 
-                elems = document.querySelectorAll('#headlines li')
-                return elems
-            )
-            .from(uri)
-            .and().then(handler(done))
-            .until(10000)
-            .otherwise(fail(done))
-            .build()
-
-        req.execute()
-
-
-    # Another test that passes... sometimes.
-    it.skip 'should extract results using page.evaluate', (done) ->
-        req = request.create()
+    it 'should scrape content using a bare function', (done) ->
+        request.create()
             .url(uri)
-            .when(-> 
-                document.querySelectorAll('#headlines li').length >= 5
-            )
-            .evaluate((page) ->
-                extractor = ->
-                    document.querySelectorAll('#headlines li')
-
-                handle = (results) ->
-                    results.length.should.be.above 5
-                    done()
-
-                page.evaluate extractor, handle
-            
-            ).until(5000)
+            .run((page) -> page.evaluate extractor, handler(done), '#static li')
+            .until(1000)
             .otherwise(fail(done))
-            .build()
-        
-        req.execute()
+            .execute()
+
+    it 'should scrape using evaluate', (done) ->
+        request.create()
+            .from(uri)
+            .evaluate(extractor, handler(done), '#static li')
+            .timeout(1000)
+            .otherwise(fail(done))
+            .execute()
+
+    it 'should scrape using separate functions', (done) ->
+        request.create()
+            .from(uri)
+            .select(extractor, '#static li')
+            .and().then().process(handler(done))
+            .timeout(1000)
+            .otherwise(fail(done))
+            .execute()
     
-
-    it 'should wait for and scrape elements by selectors', (done) ->
-        req = request.create()
-            .extract('#headlines li')
+    it 'should scrape using CSS selectors', (done) ->
+        request.create()
             .from(uri)
-            .and().then(handler(done))
-            .until(5000)
+            .select('#static li')
+            .and().then().process(handler(done))
+            .timeout(1000)
             .otherwise(fail(done))
-            .build()
+            .execute()
 
-        req.execute()
-
-
-    it 'should extract a subset of properties', (done) ->
-        req = request.create()
-            .extract('#headlines li')
+    it 'should automatically wait when scraping with CSS selectors', (done) ->
+        request.create()
             .from(uri)
-            .and().then((results) ->
-                results[0].should.have.property 'id'
-                results[1].should.have.property 'innerHTML'
-                results[2].should.have.property 'innerText'
-                done()
-            )
-            .with('id', 'children', 'innerHTML', 'innerText')
-            .until(10000)
+            .select('#headlines li')  # headlines arrive after a short delay
+            .and().then().process(handler(done))
+            .timeout(5000)
             .otherwise(fail(done))
-            .build()
+            .execute()
 
-        req.execute()
+    it 'should filter node properties when scraping with CSS selectors', (done) ->
+        verify = (results) ->
+            for node in results
+                should.exist node.innerText
+                should.exist node.id
+                should.exist node.nodeName
+                should.not.exist node.innerHTML
+                should.not.exist node.children
+                should.not.exist node.attributes
 
+            handler(done)(results)
 
-    it 'should allow select().properties(x, y, z).of(selector)...', (done) ->
-        req = request.create()
-            .select()
-            .properties('id', 'children', 'innerHTML', 'innerText')
-            .of('#headlines li')
+        request.create()
             .from(uri)
-            .and().then((results) ->
-                results[0].should.have.property 'id'
-                results[1].should.have.property 'innerHTML'
-                results[2].should.have.property 'innerText'
-                done()
-            )
-            .until(10000)
+            .select('#headlines li')  # headlines arrive after a short delay
+            .and().then().process(verify)
+            .with().properties('innerText', 'id', 'nodeName')
+            .timeout(5000)
             .otherwise(fail(done))
-            .build()
+            .execute()
+    
+    it 'should filter properties of child nodes when scraping with CSS selectors', (done) ->
+        verify = (results) ->
+            for result in results
+                for node in result.children
+                    should.exist node.innerText
+                    should.exist node.id
+                    should.exist node.nodeName
+                    should.not.exist node.innerHTML
+                    should.not.exist node.attributes
 
-        req.execute()
+            done()
 
-    it 'should filter children as well as the parent when using select().properties()', (done) ->
-        req = request.create()
-            .select()
-            .properties('id', 'children', 'innerHTML')
-            .of('#nested div')
+        request.create()
             .from(uri)
-            .and().then((results) ->
-                # Test a sample of properties of top level elements
-                results[0].should.have.property 'id'
-                results[1].should.have.property 'innerHTML'
-                results[2].should.have.property 'children'
-                results[0].should.not.have.property 'innerText'
-
-                for result in results
-                    for child in result.children
-                        child.should.have.property 'id'
-                        child.should.have.property 'innerHTML'
-                        child.should.not.have.property 'innerText'
-
-                done()
-            )
-            .until(10000)
+            .select('#nested div')  # nested divs have h3 and ul children
+            .and().then().process(verify)
+            .with().properties('innerText', 'id', 'nodeName', 'children')
+            .timeout(5000)
             .otherwise(fail(done))
-            .build()
+            .execute()
 
-        req.execute()
+    it 'should wait on a function to return true', (done) ->
+        request.create()
+            .from(uri)
+            .when(-> document.querySelectorAll('#headlines li').length >= 5)
+            .select(extractor, '#headlines li')
+            .and().then().process(handler(done))
+            .timeout(5000)
+            .otherwise(fail(done))
+            .execute()
+
+    it 'should wait on a CSS selector to be satisfied', (done) ->
+        request.create()
+            .from(uri)
+            .when('#headlines li', 7)
+            .select(extractor, '#headlines li')
+            .and().then().process(handler(done))
+            .timeout(5000)
+            .otherwise(fail(done))
+            .execute()
 

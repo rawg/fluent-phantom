@@ -7,12 +7,31 @@
 		<h1>Title</h1>
 		<p>Information about the stub that never changes.</p>
 
+		<!-- Content that is part of the page - no AJAX involved -->
+		<div id="static">
+			<h3>static</h3>
+			<ul>
+				<li>Headline 1</li>
+				<li>Headline 2</li>
+				<li>Headline 3</li>
+				<li>Headline 4</li>
+				<li>Headline 5</li>
+				<li>Headline 6</li>
+			</ul>
+		</div>
+
+
+
+		<!-- Headlines that are loaded all at once after 1s-->
 		<ul id="headlines"></ul>
 
+		<!-- Trailing content loaded incrementally over several seconds -->
 		<ul id="trailing"></ul>
 
+		<!-- Content that is continuously loaded (until the list grows to a few hundred items) -->
 		<ul id="ticker"></ul>
 
+		<!-- Content loaded all at once after 1s, like headlines, but with child elements -->
 		<div id="nested"></div>
 
 	</body>

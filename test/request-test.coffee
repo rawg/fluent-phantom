@@ -67,10 +67,6 @@ describe 'A request', ->
         phEvents = ['createPage', 'open', 'exit']
         emitted = []
 
-        delay 1500, -> 
-            keys = (key for key of emitted)
-            should.fail(keys, phEvents, 'Not all events were emitted. Only received ' + keys.join ', ')
-
         req = new request.Request
         req.url('#').timeout(1500).action(-> )
 
