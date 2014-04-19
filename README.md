@@ -209,6 +209,29 @@ Allow a request to wait forever for content.
 #### Builder.immediately() <a name="immediately" />
 Causes the request to test its condition once, but only once.
 
+### Filler terms <a name="filler" />
+For expressiveness, several meaningless terms exist in the builder grammar. They are:
+ * `and()`
+ * `then()`
+ * `of()`
+ * `with()`
+
+These terms provide a more fluent feel. For instance, compare:
+```coffeescript
+phantom.create()
+	.select('div.feature a')
+	.process(-> ...)
+```
+
+to
+```coffeescript
+phantom.create()
+	.select('div.feature a')
+	.and().then().process(-> ...)
+```
+
+The difference is small, but available if desired.
+
 ### Finishing with `build()` and `execute()` <a name="building" />
 Once a builder has received all input to create a request, you can build it using `build()` or immediately execute (and return) it with `execute()`.
 

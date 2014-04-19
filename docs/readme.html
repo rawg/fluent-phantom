@@ -272,6 +272,23 @@ builder.when(callback, argument)</code></pre>
 <p>Allow a request to wait forever for content.</p>
 <h4 id="builder-immediately-a-name-immediately-">Builder.immediately() <a name="immediately" /></h4>
 <p>Causes the request to test its condition once, but only once.</p>
+<h3 id="filler-terms-a-name-filler-">Filler terms <a name="filler" /></h3>
+<p>For expressiveness, several meaningless terms exist in the builder grammar. They are:</p>
+<ul>
+<li><code>and()</code></li>
+<li><code>then()</code></li>
+<li><code>of()</code></li>
+<li><code>with()</code></li>
+</ul>
+<p>These terms provide a more fluent feel. For instance, compare:</p>
+<pre><code class="lang-coffeescript">phantom.create()
+    .select(&#39;div.feature a&#39;)
+    .process(-&gt; ...)</code></pre>
+<p>to</p>
+<pre><code class="lang-coffeescript">phantom.create()
+    .select(&#39;div.feature a&#39;)
+    .and().then().process(-&gt; ...)</code></pre>
+<p>The difference is small, but available if desired.</p>
 <h3 id="finishing-with-build-and-execute-a-name-building-">Finishing with <code>build()</code> and <code>execute()</code> <a name="building" /></h3>
 <p>Once a builder has received all input to create a request, you can build it using <code>build()</code> or immediately execute (and return) it with <code>execute()</code>.</p>
 <h4 id="builder-build-a-name-build-">Builder.build() <a name="build" /></h4>
