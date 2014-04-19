@@ -303,7 +303,7 @@ binder = (phantom) ->
 
         # Set or get the timeout value
         timeout: (value) ->
-            if typeof value == 'number' && value >= 0
+            if typeof value == 'number'
                 @_timeout = value
                 this
             else
@@ -395,7 +395,8 @@ binder = (phantom) ->
                                     page.evaluate @_condition.callback, handler, @_condition.argument
 
 
-                            @_interval = setInterval tick, 250
+                            if @_timeout >= 0
+                                @_interval = setInterval tick, 250
                             tick()
 
                         else                            # Request succeeded and no verifications necessary - proceed!

@@ -36,7 +36,7 @@
         "function": 'action-function'
       }
     };
-    nodeProperties = ['attributes', 'baseURI', 'childElementCount', 'childNodes', 'classList', 'className', 'dataset', 'dir', 'hidden', 'id', 'innerHTML', 'innerText', 'lang', 'localName', 'namespaceURI', 'nodeName', 'nodeType', 'nodeValue', 'outerHTML', 'outerText', 'prefix', 'style', 'tabIndex', 'tagName', 'textContent', 'title', 'type', 'value', 'children'];
+    nodeProperties = ['attributes', 'baseURI', 'childElementCount', 'childNodes', 'classList', 'className', 'dataset', 'dir', 'hidden', 'id', 'innerHTML', 'innerText', 'lang', 'localName', 'namespaceURI', 'nodeName', 'nodeType', 'nodeValue', 'outerHTML', 'outerText', 'prefix', 'style', 'tabIndex', 'tagName', 'textContent', 'title', 'type', 'value', 'children', 'href', 'src'];
     Builder = (function() {
       function Builder() {
         this._build = {
@@ -55,7 +55,7 @@
             extractor: null,
             handler: null,
             argument: null,
-            properties: ['children', 'tagName', 'innerText', 'innerHTML', 'id', 'attributes'],
+            properties: ['children', 'tagName', 'innerText', 'innerHTML', 'id', 'attributes', 'href', 'src', 'className'],
             query: null
           },
           timeout: {
@@ -167,11 +167,15 @@
         return this;
       };
 
+      Builder.prototype.extract = function(selector, argument) {
+        return this.select(selector, argument);
+      };
+
       Builder.prototype.select = function(selector, argument) {
         if (typeof selector === 'string') {
           this._build.action = builders.action.css;
           this._props.scraper.query = selector;
-          this.when(selector);
+          this.when(selector, argument);
         } else if (typeof selector === 'function') {
           this._build.action = builders.action.parts;
           this._props.scraper.extractor = selector;
@@ -381,7 +385,7 @@
       };
 
       Request.prototype.timeout = function(value) {
-        if (typeof value === 'number' && value >= 0) {
+        if (typeof value === 'number') {
           this._timeout = value;
           return this;
         } else {
@@ -478,7 +482,9 @@
                       return page.evaluate(_this._condition.callback, handler, _this._condition.argument);
                     }
                   };
-                  _this._interval = setInterval(tick, 250);
+                  if (_this._timeout >= 0) {
+                    _this._interval = setInterval(tick, 250);
+                  }
                   return tick();
                 } else {
                   _this.emit(events.READY);

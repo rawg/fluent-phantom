@@ -700,7 +700,7 @@ in the context of the page with access to <code>window</code> and <code>document
             </div>
             
             <div class="content"><div class='highlight'><pre>        <span class="hljs-attribute">timeout</span>: <span class="hljs-function"><span class="hljs-params">(value)</span> -&gt;</span>
-            <span class="hljs-keyword">if</span> <span class="hljs-keyword">typeof</span> value == <span class="hljs-string">'number'</span> &amp;&amp; value &gt;= <span class="hljs-number">0</span>
+            <span class="hljs-keyword">if</span> <span class="hljs-keyword">typeof</span> value == <span class="hljs-string">'number'</span>
                 <span class="hljs-property">@_timeout</span> = value
                 <span class="hljs-keyword">this</span>
             <span class="hljs-keyword">else</span>
@@ -888,7 +888,8 @@ have been satisfied or we run out of time.</p>
                                     page.evaluate <span class="hljs-property">@_condition</span>.callback, handler, <span class="hljs-property">@_condition</span>.argument
 
 
-                            <span class="hljs-property">@_interval</span> = setInterval tick, <span class="hljs-number">250</span>
+                            <span class="hljs-keyword">if</span> <span class="hljs-property">@_timeout</span> &gt;= <span class="hljs-number">0</span>
+                                <span class="hljs-property">@_interval</span> = setInterval tick, <span class="hljs-number">250</span>
                             tick()
 
                         <span class="hljs-keyword">else</span>                            <span class="hljs-comment"># Request succeeded and no verifications necessary - proceed!</span>

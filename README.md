@@ -47,14 +47,14 @@ This package is made up of two classes: a `Request` class that wraps the Phantom
 	- [Waiting for content with `when()`](#waiting)
 		- [With CSS selectors](#when-css)
 		- [With functions](#when-functions)
-	- Controlling timeouts and errors
-		- otherwise()
-		- timeout()
-		- forever()
-		- immediately()
-	- Filler terms
-	- Finishing with `build()` and `execute()`
-- Request
+	- [Controlling timeouts and errors](#timeouts-and-errors)
+		- [`otherwise()`](#otherwise)
+		- [`timeout()`](#timeout)
+		- [`forever()`](#forever)
+		- [`immediately()`](#immediately)
+	- [Filler terms](#filler)
+	- [Finishing with `build()` and `execute()`](#building)
+- [Request](#request)
 	- Setters and getters
 	- Debugging
 	- Events
@@ -191,6 +191,35 @@ callback = (args) -> document.querySelectorAll(args.query).length >= args.minimu
 
 builder.when(callback, argument)
 ```
+
+### Controlling timeouts and errors <a name="timeouts-and-errors" />
+Builders provide support for setting bounds on the time to wait for content to become ready.
+
+#### Builder.otherwise(callback: function) <a name="otherwise" />
+Set a callback to be invoked when the request times out while waiting for content to become available. The callback will receive no arguments.
+
+#### Builder.timeout(milliseconds: number) <a name="timeout" />
+Synonyms: `for()`, `until()`
+
+Set the duration to wait before timing out.
+
+#### Builder.forever() <a name="forever" />
+Allow a request to wait forever for content.
+
+#### Builder.immediately() <a name="immediately" />
+Causes the request to test its condition once, but only once.
+
+### Finishing with `build()` and `execute()` <a name="building" />
+Once a builder has received all input to create a request, you can build it using `build()` or immediately execute (and return) it with `execute()`.
+
+#### Builder.build() <a name="build" />
+Builds a [`Request`](#request) object to your specifications.
+
+#### Builder.execute() <a name="execute" />
+Builds and immediately executes a new [`Request](#request) object. The `Request` is returned.
+
+## Request <a name="request" />
+Documentation coming soon. In the meantime, view the annotated source in its [raw form](index.coffee) or [prettied up by docco](docs/index.html).
 
 
 
