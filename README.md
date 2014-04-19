@@ -216,16 +216,17 @@ For expressiveness, several meaningless terms exist in the builder grammar. They
  * `of()`
  * `with()`
 
-These terms provide a more fluent feel. For instance, compare:
+These terms provide a more fluent feel. For instance, compare the following two examples:
 ```coffeescript
+# Vanilla
 phantom.create()
 	.select('div.feature a')
 	.process(-> ...)
 ```
 
-to
 ```coffeescript
 phantom.create()
+# Slightly more expressive
 	.select('div.feature a')
 	.and().then().process(-> ...)
 ```
@@ -239,7 +240,7 @@ Once a builder has received all input to create a request, you can build it usin
 Builds a [`Request`](#request) object to your specifications.
 
 #### Builder.execute() <a name="execute" />
-Builds and immediately executes a new [`Request](#request) object. The `Request` is returned.
+Builds and immediately executes a new [`Request`](#request) object. The `Request` is returned.
 
 ## Request <a name="request" />
 Documentation coming soon. In the meantime, view the annotated source in its [raw form](index.coffee) or [prettied up by docco](docs/index.html).
