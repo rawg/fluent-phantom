@@ -11,13 +11,17 @@ Emitter = require('events').EventEmitter
 now = ->
     (new Date).getTime()
 
-
 # The module exports are defined in this function to make it easy to inject a 
 # mock for unit testing.
 binder = (phantom) ->
 
     # Use the real PhantomJS bridge if an alternative is not injected
     phantom = if typeof phantom == 'object' then phantom else require 'phantom'
+
+    # Control recycling a single phantom object
+    shared =
+        phantom: null
+        recycle: false
 
     # Events that may be emitted by a Request
     events =
@@ -270,7 +274,8 @@ binder = (phantom) ->
         end = ->
             @emit events.FINISH
             clearInterval @_interval
-            @_phantom.exit()
+            if @_closeWhenFinished and shared.recycle isnt true
+                @_phantom.exit()
 
         log = (msg) ->
             console.log msg
@@ -285,6 +290,7 @@ binder = (phantom) ->
             @_timeout = 3000
             @_bindConsole = false
             @_debug = false
+            @_closeWhenFinished = true
 
         # Add a callback that must return true before emitting ready
         condition: (callback, argument) ->
@@ -308,6 +314,13 @@ binder = (phantom) ->
                 this
             else
                 @_timeout
+
+        # Automaticaly close Phantom when finished
+        closeWhenFinished: (close) ->
+            if typeof close is 'boolean'
+                @_closeWhenFinished = close
+            else
+                @_closeWhenFinished
 
         # Toggle binding console.log to the PhantomJS instance's console.log.
         console: (bind) ->
@@ -357,7 +370,7 @@ binder = (phantom) ->
         execute: (url) ->
             @url url   # Set the URL if it was provided
 
-            phantom.create (ph) =>
+            exec = (ph) =>
                 @_phantom = ph
                 @emit events.PHANTOM_CREATE
                 
@@ -403,6 +416,14 @@ binder = (phantom) ->
                             @emit events.READY
                             @_action(page)
                             end.call this
+            #phantom.create exec
+            if shared.recycle is false or shared.phantom is null
+                phantom.create (ph) ->
+                    shared.phantom = ph
+                    exec ph
+                    #, {port: 0}
+            else
+                exec shared.phantom
 
     # Ensure that Request can emit events
     Request.prototype.__proto__ = Emitter.prototype
@@ -412,6 +433,8 @@ binder = (phantom) ->
         "Request": Request
         "Builder": Builder
         "events": events
+        "recycle": (val) ->
+            shared.recycle = val if typeof val is 'boolean'
         "create": -> new Builder
         
 

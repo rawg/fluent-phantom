@@ -37,13 +37,16 @@ fail = (done) ->
 uri = 'http://localhost:3050/index.html'
 
 describe 'A live request', ->
-    # These crappy 1s delays in `before()` and `afterEach()` prevent an EADDRINUSE error that's bubbling up
-    # from grunt-express or PhantomJS.
     before ->
+        # Give the Express test harness a second to start up
         sleep 1
+        
+        # Recycle a phantom object to avoid wastefulness but, more importantly,
+        # prevent the port binding / EADDRINUSE error.
+        request.recycle true
 
     afterEach ->
-        sleep 1
+        #sleep 1
 
     it 'should scrape content using a bare function', (done) ->
         request.create()
