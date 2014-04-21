@@ -9,8 +9,12 @@
   };
 
   binder = function(phantom) {
-    var Builder, Request, builders, events, exports, nodeProperties;
+    var Builder, Request, builders, events, exports, nodeProperties, shared;
     phantom = typeof phantom === 'object' ? phantom : require('phantom');
+    shared = {
+      phantom: null,
+      recycle: false
+    };
     events = {
       HALT: 'halted',
       PHANTOM_CREATE: 'phantom-created',
@@ -343,7 +347,9 @@
       end = function() {
         this.emit(events.FINISH);
         clearInterval(this._interval);
-        return this._phantom.exit();
+        if (this._closeWhenFinished && shared.recycle !== true) {
+          return this._phantom.exit();
+        }
       };
 
       log = function(msg) {
@@ -360,6 +366,7 @@
         this._timeout = 3000;
         this._bindConsole = false;
         this._debug = false;
+        this._closeWhenFinished = true;
       }
 
       Request.prototype.condition = function(callback, argument) {
@@ -390,6 +397,14 @@
           return this;
         } else {
           return this._timeout;
+        }
+      };
+
+      Request.prototype.closeWhenFinished = function(close) {
+        if (typeof close === 'boolean') {
+          return this._closeWhenFinished = close;
+        } else {
+          return this._closeWhenFinished;
         }
       };
 
@@ -447,8 +462,9 @@
       };
 
       Request.prototype.execute = function(url) {
+        var exec;
         this.url(url);
-        return phantom.create((function(_this) {
+        exec = (function(_this) {
           return function(ph) {
             _this._phantom = ph;
             _this.emit(events.PHANTOM_CREATE);
@@ -494,7 +510,15 @@
               });
             });
           };
-        })(this));
+        })(this);
+        if (shared.recycle === false || shared.phantom === null) {
+          return phantom.create(function(ph) {
+            shared.phantom = ph;
+            return exec(ph);
+          });
+        } else {
+          return exec(shared.phantom);
+        }
       };
 
       return Request;
@@ -505,6 +529,11 @@
       "Request": Request,
       "Builder": Builder,
       "events": events,
+      "recycle": function(val) {
+        if (typeof val === 'boolean') {
+          return shared.recycle = val;
+        }
+      },
       "create": function() {
         return new Builder;
       }

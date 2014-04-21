@@ -280,12 +280,13 @@ builder.when(callback, argument)</code></pre>
 <li><code>of()</code></li>
 <li><code>with()</code></li>
 </ul>
-<p>These terms provide a more fluent feel. For instance, compare:</p>
-<pre><code class="lang-coffeescript">phantom.create()
+<p>These terms provide a more fluent feel. For instance, compare the following two examples:</p>
+<pre><code class="lang-coffeescript"># Vanilla
+phantom.create()
     .select(&#39;div.feature a&#39;)
     .process(-&gt; ...)</code></pre>
-<p>to</p>
 <pre><code class="lang-coffeescript">phantom.create()
+# Slightly more expressive
     .select(&#39;div.feature a&#39;)
     .and().then().process(-&gt; ...)</code></pre>
 <p>The difference is small, but available if desired.</p>
@@ -294,7 +295,7 @@ builder.when(callback, argument)</code></pre>
 <h4 id="builder-build-a-name-build-">Builder.build() <a name="build" /></h4>
 <p>Builds a <a href="#request"><code>Request</code></a> object to your specifications.</p>
 <h4 id="builder-execute-a-name-execute-">Builder.execute() <a name="execute" /></h4>
-<p>Builds and immediately executes a new <a href="#request">`Request</a> object. The <code>Request</code> is returned.</p>
+<p>Builds and immediately executes a new <a href="#request"><code>Request</code></a> object. The <code>Request</code> is returned.</p>
 <h2 id="request-a-name-request-">Request <a name="request" /></h2>
 <p>Documentation coming soon. In the meantime, view the annotated source in its <a href="index.coffee">raw form</a> or <a href="docs/index.html">prettied up by docco</a>.</p>
 
