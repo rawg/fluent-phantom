@@ -18,6 +18,7 @@ binder = (phantom) ->
     # Use the real PhantomJS bridge if an alternative is not injected
     phantom = if typeof phantom == 'object' then phantom else require 'phantom'
 
+    # Connection strategies
     class PhantomStrategy
         supportsAutoClose: false
         open: (callback) ->  # phantom.create((ph) -> )
@@ -25,19 +26,16 @@ binder = (phantom) ->
     class NewPhantomStrategy extends PhantomStrategy
         supportsAutoClose: true
         open: (callback) ->
-            console.log 'New.open'
             phantom.create callback
 
     class RecycledPhantomStrategy extends PhantomStrategy
         phantom: null
         open: (callback) ->
             if not @phantom?
-                console.log 'Recycled.creating'
                 phantom.create (ph) =>
                     @phantom = ph
                     callback ph
             else
-                console.log 'Recycled.recycling', @phantom
                 callback @phantom
 
     class RoundRobinPhantomStrategy extends PhantomStrategy
@@ -342,7 +340,7 @@ binder = (phantom) ->
         end = ->
             @emit events.FINISH
             clearInterval @_interval
-            if @_closeWhenFinished and connection.supportsAutoClose isnt true
+            if @_closeWhenFinished and connection.supportsAutoClose
                 @_phantom.exit()
 
         log = (msg) ->
@@ -448,7 +446,6 @@ binder = (phantom) ->
                     @emit events.PAGE_CREATE
 
                     page.open @_url, (status) =>
-                        console.log 'opened', status
                         if (status != 'success')        # Request failed
                             @emit events.REQUEST_FAILURE
                             end.call this

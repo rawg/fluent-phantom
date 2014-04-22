@@ -46,7 +46,7 @@ describe 'A live request', ->
         request.recycle true
 
     afterEach ->
-        sleep 1
+        #sleep 1  # Not needed when using a recycling connection strategy
 
     it 'should scrape content using a bare function', (done) ->
         request.create()

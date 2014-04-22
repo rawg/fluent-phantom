@@ -1,5 +1,7 @@
 (function() {
   var Emitter, binder, now,
+    __hasProp = {}.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     __slice = [].slice;
 
   Emitter = require('events').EventEmitter;
@@ -9,12 +11,172 @@
   };
 
   binder = function(phantom) {
-    var Builder, Request, builders, events, exports, nodeProperties, shared;
+    var Builder, NewPhantomStrategy, PhantomStrategy, RandomPhantomStrategy, RecycledPhantomStrategy, Request, RoundRobinPhantomStrategy, builders, connection, events, exports, nodeProperties;
     phantom = typeof phantom === 'object' ? phantom : require('phantom');
-    shared = {
-      phantom: null,
-      recycle: false
-    };
+    PhantomStrategy = (function() {
+      function PhantomStrategy() {}
+
+      PhantomStrategy.prototype.supportsAutoClose = false;
+
+      PhantomStrategy.prototype.open = function(callback) {};
+
+      return PhantomStrategy;
+
+    })();
+    NewPhantomStrategy = (function(_super) {
+      __extends(NewPhantomStrategy, _super);
+
+      function NewPhantomStrategy() {
+        return NewPhantomStrategy.__super__.constructor.apply(this, arguments);
+      }
+
+      NewPhantomStrategy.prototype.supportsAutoClose = true;
+
+      NewPhantomStrategy.prototype.open = function(callback) {
+        return phantom.create(callback);
+      };
+
+      return NewPhantomStrategy;
+
+    })(PhantomStrategy);
+    RecycledPhantomStrategy = (function(_super) {
+      __extends(RecycledPhantomStrategy, _super);
+
+      function RecycledPhantomStrategy() {
+        return RecycledPhantomStrategy.__super__.constructor.apply(this, arguments);
+      }
+
+      RecycledPhantomStrategy.prototype.phantom = null;
+
+      RecycledPhantomStrategy.prototype.open = function(callback) {
+        if (this.phantom == null) {
+          return phantom.create((function(_this) {
+            return function(ph) {
+              _this.phantom = ph;
+              return callback(ph);
+            };
+          })(this));
+        } else {
+          return callback(this.phantom);
+        }
+      };
+
+      return RecycledPhantomStrategy;
+
+    })(PhantomStrategy);
+    RoundRobinPhantomStrategy = (function(_super) {
+      __extends(RoundRobinPhantomStrategy, _super);
+
+      function RoundRobinPhantomStrategy(min, max) {
+        var idx, _i;
+        if (max != null) {
+          this.max = max;
+        } else {
+          this.max = 5;
+        }
+        if (min != null) {
+          for (idx = _i = 0; 0 <= min ? _i <= min : _i >= min; idx = 0 <= min ? ++_i : --_i) {
+            phantom.create((function(_this) {
+              return function(ph) {
+                return _this.pool.push(ph);
+              };
+            })(this));
+          }
+        }
+      }
+
+      RoundRobinPhantomStrategy.prototype.cursor = 0;
+
+      RoundRobinPhantomStrategy.prototype.pool = [];
+
+      RoundRobinPhantomStrategy.prototype.fill = function() {
+        var conns, _i, _ref, _ref1, _results;
+        _results = [];
+        for (conns = _i = _ref = this.pool.length(), _ref1 = this.max; _ref <= _ref1 ? _i <= _ref1 : _i >= _ref1; conns = _ref <= _ref1 ? ++_i : --_i) {
+          _results.push(phantom.create({
+            port: 12340 + this.pool.length
+          }, (function(_this) {
+            return function(ph) {
+              return _this.pool.push(ph);
+            };
+          })(this)));
+        }
+        return _results;
+      };
+
+      RoundRobinPhantomStrategy.prototype.open = function(callback) {
+        var _ref;
+        if ((this.pool.length <= (_ref = this.cursor) && _ref < this.max)) {
+          phantom.create({
+            port: 12340 + this.pool.length
+          }, (function(_this) {
+            return function(ph) {
+              _this.pool.push(ph);
+              return callback(ph);
+            };
+          })(this));
+        } else {
+          callback(this.pool[this.cursor]);
+        }
+        return this.cursor += 1;
+      };
+
+      return RoundRobinPhantomStrategy;
+
+    })(PhantomStrategy);
+    RandomPhantomStrategy = (function(_super) {
+      __extends(RandomPhantomStrategy, _super);
+
+      function RandomPhantomStrategy(size) {
+        if ((size != null) && typeof size === 'number') {
+          this.size = size;
+        }
+      }
+
+      RandomPhantomStrategy.prototype.size = 5;
+
+      RandomPhantomStrategy.prototype.pool = [];
+
+      RandomPhantomStrategy.prototype.fill = function() {
+        var idx, _i, _ref, _results;
+        _results = [];
+        for (idx = _i = 0, _ref = this.size; 0 <= _ref ? _i <= _ref : _i >= _ref; idx = 0 <= _ref ? ++_i : --_i) {
+          if (this.pool[idx] == null) {
+            _results.push(phantom.create({
+              port: 12340 + index
+            }, (function(_this) {
+              return function(ph) {
+                return _this.pool[idx] = ph;
+              };
+            })(this)));
+          } else {
+            _results.push(void 0);
+          }
+        }
+        return _results;
+      };
+
+      RandomPhantomStrategy.prototype.open = function(callback) {
+        var index;
+        index = Math.floor(Math.random() * this.pool.length());
+        if (this.pool[index] == null) {
+          return phantom.create({
+            port: 12340 + index
+          }, (function(_this) {
+            return function(ph) {
+              _this.pool[idx] = ph;
+              return callback(ph);
+            };
+          })(this));
+        } else {
+          return callback(this.pool[index]);
+        }
+      };
+
+      return RandomPhantomStrategy;
+
+    })(PhantomStrategy);
+    connection = new NewPhantomStrategy();
     events = {
       HALT: 'halted',
       PHANTOM_CREATE: 'phantom-created',
@@ -347,7 +509,7 @@
       end = function() {
         this.emit(events.FINISH);
         clearInterval(this._interval);
-        if (this._closeWhenFinished && shared.recycle !== true) {
+        if (this._closeWhenFinished && connection.supportsAutoClose) {
           return this._phantom.exit();
         }
       };
@@ -462,9 +624,8 @@
       };
 
       Request.prototype.execute = function(url) {
-        var exec;
         this.url(url);
-        exec = (function(_this) {
+        return connection.open((function(_this) {
           return function(ph) {
             _this._phantom = ph;
             _this.emit(events.PHANTOM_CREATE);
@@ -510,15 +671,7 @@
               });
             });
           };
-        })(this);
-        if (shared.recycle === false || shared.phantom === null) {
-          return phantom.create(function(ph) {
-            shared.phantom = ph;
-            return exec(ph);
-          });
-        } else {
-          return exec(shared.phantom);
-        }
+        })(this));
       };
 
       return Request;
@@ -528,15 +681,23 @@
     return exports = {
       "Request": Request,
       "Builder": Builder,
+      "ConnectionStrategy": {
+        RoundRobin: RoundRobinPhantomStrategy,
+        New: NewPhantomStrategy,
+        Recycled: RecycledPhantomStrategy
+      },
       "events": events,
       "recycle": function(val) {
-        if (typeof val === 'boolean') {
-          return shared.recycle = val;
+        if (val) {
+          return connection = new RecycledPhantomStrategy;
+        } else {
+          return connection = new NewPhantomStrategy;
         }
       },
       "create": function() {
         return new Builder;
-      }
+      },
+      connection: connection
     };
   };
 
