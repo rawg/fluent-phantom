@@ -25,16 +25,19 @@ binder = (phantom) ->
     class NewPhantomStrategy extends PhantomStrategy
         supportsAutoClose: true
         open: (callback) ->
+            console.log 'New.open'
             phantom.create callback
 
     class RecycledPhantomStrategy extends PhantomStrategy
         phantom: null
         open: (callback) ->
             if not @phantom?
+                console.log 'Recycled.creating'
                 phantom.create (ph) =>
                     @phantom = ph
                     callback ph
             else
+                console.log 'Recycled.recycling', @phantom
                 callback @phantom
 
     class RoundRobinPhantomStrategy extends PhantomStrategy
@@ -47,6 +50,7 @@ binder = (phantom) ->
         
         cursor: 0
         pool: []
+        
         fill: ->
             for conns in [@pool.length()..@max]
                 phantom.create {port: 12340 + @pool.length}, (ph) =>
@@ -69,6 +73,12 @@ binder = (phantom) ->
             
         size: 5
         pool: []
+
+        fill: ->
+            for idx in [0..@size]
+                if not @pool[idx]?
+                    phantom.create {port: 12340 + index}, (ph) =>
+                        @pool[idx] = ph
 
         open: (callback) ->
             index = Math.floor Math.random() * @pool.length()
@@ -428,19 +438,17 @@ binder = (phantom) ->
         execute: (url) ->
             @url url   # Set the URL if it was provided
 
-            console.log 'opening'
             connection.open (ph) =>
                 @_phantom = ph
                 @emit events.PHANTOM_CREATE
-                console.log 'opened'
                 
                 ph.createPage (page) =>
                     @_page = page
-                    console.log 'created page'
                     page.set('onConsoleMessage', (msg) => @emit events.CONSOLE, msg)
                     @emit events.PAGE_CREATE
 
                     page.open @_url, (status) =>
+                        console.log 'opened', status
                         if (status != 'success')        # Request failed
                             @emit events.REQUEST_FAILURE
                             end.call this
@@ -494,6 +502,7 @@ binder = (phantom) ->
             if val then connection = new RecycledPhantomStrategy
             else connection = new NewPhantomStrategy
         "create": -> new Builder
+        connection: connection
         
 
 module.exports = binder()
