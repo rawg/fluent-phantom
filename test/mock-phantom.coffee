@@ -6,9 +6,13 @@ Emitter = require('events').EventEmitter
 
 class MockPhantom
     create: (options, callback) ->
-        @emit 'create'
+        opts = options
         if typeof options is 'function' and not callback?
             callback = options
+            opts = {}
+        
+        @emit 'create', options
+
         callback @
 
     createPage: (callback) ->

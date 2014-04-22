@@ -12,7 +12,7 @@ delay = (ms, func) -> setTimeout func, ms
 
 # Note: New and Recycled strategies are implicitly tested elsewhere
 
-describe 'A round robin strategy', ->
+describe 'A round robin phantom pooling strategy', ->
     afterEach ->
         phantom.removeAllListeners()
 
@@ -49,7 +49,7 @@ describe 'A round robin strategy', ->
         
         whenjs.all(wait).then -> done()
 
-    it 'should loop back to zero after using all connections', ->
+    it 'should loop back to zero', ->
 
         bounds =
             requests: 10
@@ -60,7 +60,6 @@ describe 'A round robin strategy', ->
             connections: 0
 
         strat = new strategy.RoundRobin bounds.connections
-        console.log strat
         phantom.on 'create', -> counters.connections++
         
         wait = []
@@ -70,13 +69,82 @@ describe 'A round robin strategy', ->
         counters.requests.should.be.exactly(bounds.requests)
         counters.connections.should.be.exactly(bounds.connections)
 
-describe.skip 'A random strategy', ->
+    it 'should use unique ports', ->
+        ports = {}
+        size = 30
+        strat = new strategy.RoundRobin size
+        phantom.on 'create', (options) ->
+            if not options.port?
+                should.fail "Expected port not provided"
+
+            if ports[options.port]?
+                should.fail "Reused port #{options.port}"
+            
+            ports[options.port] = true
+
+        for i in [0...size]
+            strat.open (ph) ->
+
+
+describe 'A random phantom pooling strategy', ->
     afterEach ->
-        phantom.removeAllListeners()
+        # no listeners were harmed in the making of this suite...
+        #phantom.removeAllListeners()
 
     it 'should invoke a callback with a connection when open() is called', (done) ->
         strat = new strategy.Random(5)
         strat.open (ph) ->
             ph.should.be.instanceof mock.Phantom
             done()
+
+    it 'should create requests as needed and not in advance', ->
+        bounds =
+            size: 10
+            create: 4
+        found =
+            initialized: 0
+            created: 0
+
+        strat = new strategy.Random bounds.size
+
+        for i in [0...bounds.create]
+            strat.open (ph) -> found.created++
+
+        for i, conn of strat.pool
+            if typeof conn is 'object' then found.initialized++
+
+        found.initialized.should.be.within 1, bounds.create
+        found.created.should.be.exactly bounds.create
+    
+    it 'should fill completely when fill() is invoked', ->
+        size = 20
+        strat = new strategy.Random 20
+
+        countConns = (pool) ->
+            # Wish there was a native reduce() here
+            count = 0
+            count++ for i in [0...size] when typeof pool[i] is 'object'
+            count
+
+        countConns(strat.pool).should.be.exactly 0
+        strat.fill()
+        countConns(strat.pool).should.be.exactly size
+
+
+    it 'should use unique ports', ->
+        ports = {}
+        size = 30
+        strat = new strategy.Random size
+
+        phantom.on 'create', (options) ->
+            if not options.port?
+                should.fail "Expected port not provided"
+
+            if ports[options.port]?
+                should.fail "Reused port #{options.port}"
+            
+            ports[options.port] = true
+
+        for i in [0...size]
+            strat.open (ph) ->
 

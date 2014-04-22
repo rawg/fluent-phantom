@@ -70,11 +70,11 @@ Those strategies are:
  - `ConnectionStrategy.Random(poolSize)`: Accepts the pool `size` as its constructor argument and selects a connection at random. *Warning:* This has had very little testing.
 
 ### Changing the connection strategy
-A package-level object, `fluent-phantom.connection`, can be reassigned to a new instance of one of the connection strategies above.
+A package-level method, `fluent-phantom.setConnectionStrategy(strategy)`, can be invoked with a new instance of one of the connection strategies above to change the strategy.
 
 ```coffeescript
 fluent = require 'fluent-phantom'
-fluent.connection = new fluent.ConnectionStrategy.RoundRobin(2, 10)
+fluent.setConnectionStrategy new fluent.ConnectionStrategy.RoundRobin(2, 10)
 ```
 
 ## Builder <a name="builder" />

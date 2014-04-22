@@ -76,16 +76,18 @@ binder = (phantom) ->
             @pool = []
             if size? and typeof size is 'number' then @size = size
 
-            for idx in [0..@size]
-                if not @pool[idx]?
-                    phantom.create {port: 12340 + index}, (ph) =>
-                        @pool[idx] = ph
             
+        fill: ->
+            for idx in [0..@size]
+                if not @pool[idx]? or typeof @pool[idx] isnt 'object'
+                    phantom.create {port: 12340 + idx}, (ph) =>
+                        @pool[idx] = ph
+
         open: (callback) ->
-            index = Math.floor Math.random() * @pool.length()
-            if not @pool[index]?
+            index = Math.floor Math.random() * @size
+            if not @pool[index]? or typeof @pool[index] isnt 'object'
                 phantom.create {port: 12340 + index}, (ph) =>
-                    @pool[idx] = ph
+                    @pool[index] = ph
                     callback ph
             else
                 callback @pool[index]
@@ -497,12 +499,17 @@ binder = (phantom) ->
             RoundRobin: RoundRobinPhantomStrategy
             New: NewPhantomStrategy
             Recycled: RecycledPhantomStrategy
+            Random: RandomPhantomStrategy
         "events": events
         "recycle": (val) ->
             if val then connection = new RecycledPhantomStrategy
             else connection = new NewPhantomStrategy
         "create": -> new Builder
-        connection: connection
+        setConnectionStrategy: (strategy) -> 
+            if strategy instanceof PhantomStrategy
+                connection = strategy
+            else
+                throw Error "Invalid connection strategy"
         
 
 module.exports = binder()

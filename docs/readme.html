@@ -183,13 +183,13 @@ phantom.create()
 <p>By default, a new Phantom object is created for each request, but this can be wasteful. In v1.1.0, alternative connection strategies were introduced.</p>
 <p>Those strategies are:</p>
 <ul>
-<li><code>fluent-phantom.ConnectionStrategy.New</code>: Creates a new Phantom for each request. <em>[default]</em></li>
-<li><code>fluent-phantom.ConnectionStrategy.Recycled</code>: Recycles the same Phantom connection for each request. This is the simplest way to avoid an EADDRINUSE bug if making many requests.</li>
-<li><code>fluent-phantom.ConnectionStrategy.RoundRobin</code>: Accepts <code>min</code> and <code>max</code> number of connections as constructor arguments. <em>Warning:</em> This has had very little testing.</li>
-<li><code>fluent-phantom.ConnectionStrategy.Random</code>: Accepts the pool <code>size</code> as its constructor argument and selects a connection at random. <em>Warning:</em> This has had very little testing.</li>
+<li><code>ConnectionStrategy.New</code>: Creates a new Phantom for each request. <em>[default]</em></li>
+<li><code>ConnectionStrategy.Recycled</code>: Recycles the same Phantom connection for each request. This is the simplest way to avoid an EADDRINUSE bug if making many requests.</li>
+<li><code>ConnectionStrategy.RoundRobin(poolSize, minimum)</code>: Accepts <code>poolSize</code> and <code>min</code> number of connections as constructor arguments. </li>
+<li><code>ConnectionStrategy.Random(poolSize)</code>: Accepts the pool <code>size</code> as its constructor argument and selects a connection at random. <em>Warning:</em> This has had very little testing.</li>
 </ul>
 <h3 id="changing-the-connection-strategy">Changing the connection strategy</h3>
-<p>A package-level object, <code>fluent-phantom.connection</code>, can be reassigned to a new instance of one of the connection strategies above.</p>
+<p>A package-level method, <code>fluent-phantom.setConnectionStrategy(strategy)</code>, can be invoked with a new instance of one of the connection strategies above to change the strategy.</p>
 <pre><code class="lang-coffeescript">fluent = require &#39;fluent-phantom&#39;
 fluent.connection = new fluent.ConnectionStrategy.RoundRobin(2, 10)</code></pre>
 <h2 id="builder-a-name-builder-">Builder <a name="builder" /></h2>

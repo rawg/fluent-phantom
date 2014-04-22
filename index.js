@@ -67,7 +67,7 @@
     RoundRobinPhantomStrategy = (function(_super) {
       __extends(RoundRobinPhantomStrategy, _super);
 
-      function RoundRobinPhantomStrategy(min, max) {
+      function RoundRobinPhantomStrategy(max, min) {
         var idx, _i;
         this.cursor = 0;
         this.pool = [];
@@ -78,7 +78,7 @@
           this.max = 5;
         }
         if (min != null) {
-          for (idx = _i = 0; 0 <= min ? _i <= min : _i >= min; idx = 0 <= min ? ++_i : --_i) {
+          for (idx = _i = 0; 0 <= min ? _i < min : _i > min; idx = 0 <= min ? ++_i : --_i) {
             phantom.create({
               port: 12340 + this.spawned++
             }, (function(_this) {
@@ -93,7 +93,7 @@
       RoundRobinPhantomStrategy.prototype.fill = function() {
         var conns, _i, _ref, _ref1, _results;
         _results = [];
-        for (conns = _i = _ref = this.spawned, _ref1 = this.max; _ref <= _ref1 ? _i <= _ref1 : _i >= _ref1; conns = _ref <= _ref1 ? ++_i : --_i) {
+        for (conns = _i = _ref = this.spawned, _ref1 = this.max; _ref <= _ref1 ? _i < _ref1 : _i > _ref1; conns = _ref <= _ref1 ? ++_i : --_i) {
           this.spawned++;
           _results.push(phantom.create({
             port: 12340 + conns
@@ -107,10 +107,12 @@
       };
 
       RoundRobinPhantomStrategy.prototype.open = function(callback) {
-        var _ref;
-        if ((this.spawned <= (_ref = this.cursor) && _ref < this.max)) {
+        if (this.cursor >= this.max) {
+          this.cursor = 0;
+        }
+        if (this.spawned < this.max) {
           phantom.create({
-            port: 12340 + this.spawned
+            port: 12340 + this.spawned++
           }, (function(_this) {
             return function(ph) {
               _this.pool.push(ph);
@@ -120,7 +122,7 @@
         } else {
           callback(this.pool[this.cursor]);
         }
-        return this.cursor += 1;
+        return this.cursor++;
       };
 
       return RoundRobinPhantomStrategy;
@@ -130,34 +132,41 @@
       __extends(RandomPhantomStrategy, _super);
 
       function RandomPhantomStrategy(size) {
-        var idx, _i, _ref;
         this.size = 5;
         this.pool = [];
         if ((size != null) && typeof size === 'number') {
           this.size = size;
         }
+      }
+
+      RandomPhantomStrategy.prototype.fill = function() {
+        var idx, _i, _ref, _results;
+        _results = [];
         for (idx = _i = 0, _ref = this.size; 0 <= _ref ? _i <= _ref : _i >= _ref; idx = 0 <= _ref ? ++_i : --_i) {
-          if (this.pool[idx] == null) {
-            phantom.create({
-              port: 12340 + index
+          if ((this.pool[idx] == null) || typeof this.pool[idx] !== 'object') {
+            _results.push(phantom.create({
+              port: 12340 + idx
             }, (function(_this) {
               return function(ph) {
                 return _this.pool[idx] = ph;
               };
-            })(this));
+            })(this)));
+          } else {
+            _results.push(void 0);
           }
         }
-      }
+        return _results;
+      };
 
       RandomPhantomStrategy.prototype.open = function(callback) {
         var index;
-        index = Math.floor(Math.random() * this.pool.length());
-        if (this.pool[index] == null) {
+        index = Math.floor(Math.random() * this.size);
+        if ((this.pool[index] == null) || typeof this.pool[index] !== 'object') {
           return phantom.create({
             port: 12340 + index
           }, (function(_this) {
             return function(ph) {
-              _this.pool[idx] = ph;
+              _this.pool[index] = ph;
               return callback(ph);
             };
           })(this));
@@ -677,7 +686,8 @@
       "ConnectionStrategy": {
         RoundRobin: RoundRobinPhantomStrategy,
         New: NewPhantomStrategy,
-        Recycled: RecycledPhantomStrategy
+        Recycled: RecycledPhantomStrategy,
+        Random: RandomPhantomStrategy
       },
       "events": events,
       "recycle": function(val) {
@@ -690,7 +700,13 @@
       "create": function() {
         return new Builder;
       },
-      connection: connection
+      setConnectionStrategy: function(strategy) {
+        if (strategy instanceof PhantomStrategy) {
+          return connection = strategy;
+        } else {
+          throw Error("Invalid connection strategy");
+        }
+      }
     };
   };
 

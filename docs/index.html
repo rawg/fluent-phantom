@@ -139,32 +139,36 @@ mock for unit testing.</p>
                 callback <span class="hljs-property">@phantom</span>
 
     <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">RoundRobinPhantomStrategy</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">PhantomStrategy</span></span>
-        <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(min, max)</span> -&gt;</span>
+        <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(max, min)</span> -&gt;</span>
             <span class="hljs-property">@cursor</span> = <span class="hljs-number">0</span>
             <span class="hljs-property">@pool</span> = []
             <span class="hljs-property">@spawned</span> = <span class="hljs-number">0</span>
 
             <span class="hljs-keyword">if</span> max? <span class="hljs-keyword">then</span> <span class="hljs-property">@max</span> = max <span class="hljs-keyword">else</span> <span class="hljs-property">@max</span> = <span class="hljs-number">5</span>
             <span class="hljs-keyword">if</span> min?
-                <span class="hljs-keyword">for</span> idx <span class="hljs-keyword">in</span> [<span class="hljs-number">0.</span>.min]
+                <span class="hljs-keyword">for</span> idx <span class="hljs-keyword">in</span> [<span class="hljs-number">0.</span>..min]
                     phantom.create {<span class="hljs-attribute">port</span>: <span class="hljs-number">12340</span> + <span class="hljs-property">@spawned</span>++}, <span class="hljs-function"><span class="hljs-params">(ph)</span> =&gt;</span>
                         <span class="hljs-property">@pool</span>.push ph
         
         <span class="hljs-attribute">fill</span>:<span class="hljs-function"> -&gt;</span>
-            <span class="hljs-keyword">for</span> conns <span class="hljs-keyword">in</span> [<span class="hljs-property">@spawned</span>..<span class="hljs-property">@max</span>]
+            <span class="hljs-keyword">for</span> conns <span class="hljs-keyword">in</span> [<span class="hljs-property">@spawned</span>...<span class="hljs-property">@max</span>]
                 <span class="hljs-property">@spawned</span>++
                 phantom.create {<span class="hljs-attribute">port</span>: <span class="hljs-number">12340</span> + conns}, <span class="hljs-function"><span class="hljs-params">(ph)</span> =&gt;</span>
                     <span class="hljs-property">@pool</span>.push ph
 
         <span class="hljs-attribute">open</span>: <span class="hljs-function"><span class="hljs-params">(callback)</span> -&gt;</span>
-            <span class="hljs-keyword">if</span> <span class="hljs-property">@spawned</span> &lt;= <span class="hljs-property">@cursor</span> &lt; <span class="hljs-property">@max</span>
-                phantom.create {<span class="hljs-attribute">port</span>: <span class="hljs-number">12340</span> + <span class="hljs-property">@spawned</span>}, <span class="hljs-function"><span class="hljs-params">(ph)</span> =&gt;</span>
+            <span class="hljs-keyword">if</span> <span class="hljs-property">@cursor</span> &gt;= <span class="hljs-property">@max</span>
+                <span class="hljs-property">@cursor</span> = <span class="hljs-number">0</span>
+
+            <span class="hljs-keyword">if</span> <span class="hljs-property">@spawned</span> &lt; <span class="hljs-property">@max</span>
+                phantom.create {<span class="hljs-attribute">port</span>: <span class="hljs-number">12340</span> + <span class="hljs-property">@spawned</span>++}, <span class="hljs-function"><span class="hljs-params">(ph)</span> =&gt;</span>
                     <span class="hljs-property">@pool</span>.push ph
                     callback ph
             <span class="hljs-keyword">else</span>
                 callback <span class="hljs-property">@pool</span>[<span class="hljs-property">@cursor</span>]
 
-            <span class="hljs-property">@cursor</span> += <span class="hljs-number">1</span>
+            <span class="hljs-property">@cursor</span>++
+
                 
     <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">RandomPhantomStrategy</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">PhantomStrategy</span></span>
         <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(size)</span> -&gt;</span>
@@ -172,16 +176,18 @@ mock for unit testing.</p>
             <span class="hljs-property">@pool</span> = []
             <span class="hljs-keyword">if</span> size? <span class="hljs-keyword">and</span> <span class="hljs-keyword">typeof</span> size <span class="hljs-keyword">is</span> <span class="hljs-string">'number'</span> <span class="hljs-keyword">then</span> <span class="hljs-property">@size</span> = size
 
-            <span class="hljs-keyword">for</span> idx <span class="hljs-keyword">in</span> [<span class="hljs-number">0.</span>.<span class="hljs-property">@size</span>]
-                <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> <span class="hljs-property">@pool</span>[idx]?
-                    phantom.create {<span class="hljs-attribute">port</span>: <span class="hljs-number">12340</span> + index}, <span class="hljs-function"><span class="hljs-params">(ph)</span> =&gt;</span>
-                        <span class="hljs-property">@pool</span>[idx] = ph
             
+        <span class="hljs-attribute">fill</span>:<span class="hljs-function"> -&gt;</span>
+            <span class="hljs-keyword">for</span> idx <span class="hljs-keyword">in</span> [<span class="hljs-number">0.</span>.<span class="hljs-property">@size</span>]
+                <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> <span class="hljs-property">@pool</span>[idx]? <span class="hljs-keyword">or</span> <span class="hljs-keyword">typeof</span> <span class="hljs-property">@pool</span>[idx] <span class="hljs-keyword">isnt</span> <span class="hljs-string">'object'</span>
+                    phantom.create {<span class="hljs-attribute">port</span>: <span class="hljs-number">12340</span> + idx}, <span class="hljs-function"><span class="hljs-params">(ph)</span> =&gt;</span>
+                        <span class="hljs-property">@pool</span>[idx] = ph
+
         <span class="hljs-attribute">open</span>: <span class="hljs-function"><span class="hljs-params">(callback)</span> -&gt;</span>
-            index = Math.floor Math.random() * <span class="hljs-property">@pool</span>.length()
-            <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> <span class="hljs-property">@pool</span>[index]?
+            index = Math.floor Math.random() * <span class="hljs-property">@size</span>
+            <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> <span class="hljs-property">@pool</span>[index]? <span class="hljs-keyword">or</span> <span class="hljs-keyword">typeof</span> <span class="hljs-property">@pool</span>[index] <span class="hljs-keyword">isnt</span> <span class="hljs-string">'object'</span>
                 phantom.create {<span class="hljs-attribute">port</span>: <span class="hljs-number">12340</span> + index}, <span class="hljs-function"><span class="hljs-params">(ph)</span> =&gt;</span>
-                    <span class="hljs-property">@pool</span>[idx] = ph
+                    <span class="hljs-property">@pool</span>[index] = ph
                     callback ph
             <span class="hljs-keyword">else</span>
                 callback <span class="hljs-property">@pool</span>[index]
@@ -1035,12 +1041,17 @@ have been satisfied or we run out of time.</p>
             <span class="hljs-attribute">RoundRobin</span>: RoundRobinPhantomStrategy
             <span class="hljs-attribute">New</span>: NewPhantomStrategy
             <span class="hljs-attribute">Recycled</span>: RecycledPhantomStrategy
+            <span class="hljs-attribute">Random</span>: RandomPhantomStrategy
         <span class="hljs-string">"events"</span>: events
         <span class="hljs-string">"recycle"</span>: <span class="hljs-function"><span class="hljs-params">(val)</span> -&gt;</span>
             <span class="hljs-keyword">if</span> val <span class="hljs-keyword">then</span> connection = <span class="hljs-keyword">new</span> RecycledPhantomStrategy
             <span class="hljs-keyword">else</span> connection = <span class="hljs-keyword">new</span> NewPhantomStrategy
         <span class="hljs-string">"create"</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-keyword">new</span> Builder
-        <span class="hljs-attribute">connection</span>: connection
+        <span class="hljs-attribute">setConnectionStrategy</span>: <span class="hljs-function"><span class="hljs-params">(strategy)</span> -&gt;</span> 
+            <span class="hljs-keyword">if</span> strategy <span class="hljs-keyword">instanceof</span> PhantomStrategy
+                connection = strategy
+            <span class="hljs-keyword">else</span>
+                <span class="hljs-keyword">throw</span> Error <span class="hljs-string">"Invalid connection strategy"</span>
         
 
 <span class="hljs-built_in">module</span>.<span class="hljs-built_in">exports</span> = binder()
