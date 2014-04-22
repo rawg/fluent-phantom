@@ -20,7 +20,7 @@ module.exports = (grunt) ->
                     reporter: 'spec'
                     timeout: 5000
                     require: ['should', 'coffee-script/register']
-                src: ['test/request-test.coffee', 'test/request-builder-test.coffee', 'test/functional-test.coffee']
+                src: ['test/request-test.coffee', 'test/connection-strategy-test.coffee', 'test/request-builder-test.coffee', 'test/functional-test.coffee']
 
         express:
             server:

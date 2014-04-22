@@ -69,6 +69,9 @@
 
       function RoundRobinPhantomStrategy(min, max) {
         var idx, _i;
+        this.cursor = 0;
+        this.pool = [];
+        this.spawned = 0;
         if (max != null) {
           this.max = max;
         } else {
@@ -76,7 +79,9 @@
         }
         if (min != null) {
           for (idx = _i = 0; 0 <= min ? _i <= min : _i >= min; idx = 0 <= min ? ++_i : --_i) {
-            phantom.create((function(_this) {
+            phantom.create({
+              port: 12340 + this.spawned++
+            }, (function(_this) {
               return function(ph) {
                 return _this.pool.push(ph);
               };
@@ -85,16 +90,13 @@
         }
       }
 
-      RoundRobinPhantomStrategy.prototype.cursor = 0;
-
-      RoundRobinPhantomStrategy.prototype.pool = [];
-
       RoundRobinPhantomStrategy.prototype.fill = function() {
         var conns, _i, _ref, _ref1, _results;
         _results = [];
-        for (conns = _i = _ref = this.pool.length(), _ref1 = this.max; _ref <= _ref1 ? _i <= _ref1 : _i >= _ref1; conns = _ref <= _ref1 ? ++_i : --_i) {
+        for (conns = _i = _ref = this.spawned, _ref1 = this.max; _ref <= _ref1 ? _i <= _ref1 : _i >= _ref1; conns = _ref <= _ref1 ? ++_i : --_i) {
+          this.spawned++;
           _results.push(phantom.create({
-            port: 12340 + this.pool.length
+            port: 12340 + conns
           }, (function(_this) {
             return function(ph) {
               return _this.pool.push(ph);
@@ -106,9 +108,9 @@
 
       RoundRobinPhantomStrategy.prototype.open = function(callback) {
         var _ref;
-        if ((this.pool.length <= (_ref = this.cursor) && _ref < this.max)) {
+        if ((this.spawned <= (_ref = this.cursor) && _ref < this.max)) {
           phantom.create({
-            port: 12340 + this.pool.length
+            port: 12340 + this.spawned
           }, (function(_this) {
             return function(ph) {
               _this.pool.push(ph);
@@ -128,33 +130,24 @@
       __extends(RandomPhantomStrategy, _super);
 
       function RandomPhantomStrategy(size) {
+        var idx, _i, _ref;
+        this.size = 5;
+        this.pool = [];
         if ((size != null) && typeof size === 'number') {
           this.size = size;
         }
-      }
-
-      RandomPhantomStrategy.prototype.size = 5;
-
-      RandomPhantomStrategy.prototype.pool = [];
-
-      RandomPhantomStrategy.prototype.fill = function() {
-        var idx, _i, _ref, _results;
-        _results = [];
         for (idx = _i = 0, _ref = this.size; 0 <= _ref ? _i <= _ref : _i >= _ref; idx = 0 <= _ref ? ++_i : --_i) {
           if (this.pool[idx] == null) {
-            _results.push(phantom.create({
+            phantom.create({
               port: 12340 + index
             }, (function(_this) {
               return function(ph) {
                 return _this.pool[idx] = ph;
               };
-            })(this)));
-          } else {
-            _results.push(void 0);
+            })(this));
           }
         }
-        return _results;
-      };
+      }
 
       RandomPhantomStrategy.prototype.open = function(callback) {
         var index;

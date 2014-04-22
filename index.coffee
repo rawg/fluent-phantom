@@ -39,45 +39,48 @@ binder = (phantom) ->
                 callback @phantom
 
     class RoundRobinPhantomStrategy extends PhantomStrategy
-        constructor: (min, max) ->
+        constructor: (max, min) ->
+            @cursor = 0
+            @pool = []
+            @spawned = 0
+
             if max? then @max = max else @max = 5
             if min?
-                for idx in [0..min]
-                    phantom.create (ph) =>
+                for idx in [0...min]
+                    phantom.create {port: 12340 + @spawned++}, (ph) =>
                         @pool.push ph
         
-        cursor: 0
-        pool: []
-        
         fill: ->
-            for conns in [@pool.length()..@max]
-                phantom.create {port: 12340 + @pool.length}, (ph) =>
+            for conns in [@spawned...@max]
+                @spawned++
+                phantom.create {port: 12340 + conns}, (ph) =>
                     @pool.push ph
 
         open: (callback) ->
-            # Note: it's possible to have >@max pools
-            if @pool.length <= @cursor < @max
-                phantom.create {port: 12340 + @pool.length}, (ph) =>
+            if @cursor >= @max
+                @cursor = 0
+
+            if @spawned < @max
+                phantom.create {port: 12340 + @spawned++}, (ph) =>
                     @pool.push ph
                     callback ph
             else
                 callback @pool[@cursor]
 
-            @cursor += 1
+            @cursor++
+
                 
     class RandomPhantomStrategy extends PhantomStrategy
         constructor: (size) ->
+            @size = 5
+            @pool = []
             if size? and typeof size is 'number' then @size = size
-            
-        size: 5
-        pool: []
 
-        fill: ->
             for idx in [0..@size]
                 if not @pool[idx]?
                     phantom.create {port: 12340 + index}, (ph) =>
                         @pool[idx] = ph
-
+            
         open: (callback) ->
             index = Math.floor Math.random() * @pool.length()
             if not @pool[index]?

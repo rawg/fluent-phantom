@@ -5,8 +5,11 @@ Emitter = require('events').EventEmitter
 
 
 class MockPhantom
-    create: (callback) ->
-        callback this
+    create: (options, callback) ->
+        @emit 'create'
+        if typeof options is 'function' and not callback?
+            callback = options
+        callback @
 
     createPage: (callback) ->
         if typeof callback != 'function' then throw Error "Invalid callback"
@@ -40,7 +43,11 @@ MockPage.prototype.__proto__ = Emitter.prototype
 MockPhantom.prototype.__proto__ = Emitter.prototype
 
 module.exports = 
-    create: (callback) -> callback(new MockPhantom)
+    create: (options, callback) -> 
+        if typeof options is 'function' and not callback?
+            callback = options
+        callback(new MockPhantom)
+
     Phantom: MockPhantom
     Page: MockPage
 

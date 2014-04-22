@@ -64,10 +64,10 @@ The core of this package is two classes: a `Request` class that wraps the Phanto
 By default, a new Phantom object is created for each request, but this can be wasteful. In v1.1.0, alternative connection strategies were introduced.
 
 Those strategies are:
- - `fluent-phantom.ConnectionStrategy.New`: Creates a new Phantom for each request. *[default]*
- - `fluent-phantom.ConnectionStrategy.Recycled`: Recycles the same Phantom connection for each request. This is the simplest way to avoid an EADDRINUSE bug if making many requests.
- - `fluent-phantom.ConnectionStrategy.RoundRobin`: Accepts `min` and `max` number of connections as constructor arguments. *Warning:* This has had very little testing.
- - `fluent-phantom.ConnectionStrategy.Random`: Accepts the pool `size` as its constructor argument and selects a connection at random. *Warning:* This has had very little testing.
+ - `ConnectionStrategy.New`: Creates a new Phantom for each request. *[default]*
+ - `ConnectionStrategy.Recycled`: Recycles the same Phantom connection for each request. This is the simplest way to avoid an EADDRINUSE bug if making many requests.
+ - `ConnectionStrategy.RoundRobin(poolSize, minimum)`: Accepts `poolSize` and `min` number of connections as constructor arguments. 
+ - `ConnectionStrategy.Random(poolSize)`: Accepts the pool `size` as its constructor argument and selects a connection at random. *Warning:* This has had very little testing.
 
 ### Changing the connection strategy
 A package-level object, `fluent-phantom.connection`, can be reassigned to a new instance of one of the connection strategies above.
