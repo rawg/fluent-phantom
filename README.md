@@ -67,7 +67,7 @@ Those strategies are:
  - `ConnectionStrategy.New`: Creates a new Phantom for each request. *[default]*
  - `ConnectionStrategy.Recycled`: Recycles the same Phantom connection for each request. This is the simplest way to avoid an EADDRINUSE bug if making many requests.
  - `ConnectionStrategy.RoundRobin(poolSize, minimum)`: Accepts `poolSize` and `min` number of connections as constructor arguments. 
- - `ConnectionStrategy.Random(poolSize)`: Accepts the pool `size` as its constructor argument and selects a connection at random. *Warning:* This has had very little testing.
+ - `ConnectionStrategy.Random(poolSize)`: Accepts the pool `size` as its constructor argument and selects a connection at random.
 
 ### Changing the connection strategy
 A package-level method, `fluent-phantom.setConnectionStrategy(strategy)`, can be invoked with a new instance of one of the connection strategies above to change the strategy.
