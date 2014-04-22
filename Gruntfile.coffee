@@ -18,7 +18,7 @@ module.exports = (grunt) ->
             test:
                 options:
                     reporter: 'spec'
-                    timeout: 30000
+                    timeout: 10000
                     require: ['should', 'coffee-script/register']
                 src: ['test/request-test.coffee', 'test/request-builder-test.coffee', 'test/functional-test.coffee']
 

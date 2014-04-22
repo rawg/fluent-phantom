@@ -30,8 +30,9 @@ phantom.create()
 ```
 
 ## Overview
-This package is made up of two classes: a `Request` class that wraps the PhantomJS bridge and a fluent `Builder` to simplify its use.
+The core of this package is two classes: a `Request` class that wraps the PhantomJS bridge and a fluent `Builder` to simplify its use.
 
+- [Connection strategies](#connection-strategy)
 - [Builder](#builder)
   	- [Initializing a builder with `create()`](#initializing)
 	- [Declaring a URL with `from()`](#from)
@@ -58,6 +59,9 @@ This package is made up of two classes: a `Request` class that wraps the Phantom
 	- Setters and getters
 	- Debugging
 	- Events
+
+## Connection Strategies <a name="connection-strategies" />
+
 
 ## Builder <a name="builder" />
 ### Initializing a builder with `create()` <a name="initializing" />

@@ -18,10 +18,68 @@ binder = (phantom) ->
     # Use the real PhantomJS bridge if an alternative is not injected
     phantom = if typeof phantom == 'object' then phantom else require 'phantom'
 
-    # Control recycling a single phantom object
-    shared =
+    class PhantomStrategy
+        supportsAutoClose: false
+        open: (callback) ->  # phantom.create((ph) -> )
+
+    class NewPhantomStrategy extends PhantomStrategy
+        supportsAutoClose: true
+        open: (callback) ->
+            phantom.create callback
+
+    class RecycledPhantomStrategy extends PhantomStrategy
         phantom: null
-        recycle: false
+        open: (callback) ->
+            if not @phantom?
+                phantom.create (ph) =>
+                    @phantom = ph
+                    callback ph
+            else
+                callback @phantom
+
+    class RoundRobinPhantomStrategy extends PhantomStrategy
+        constructor: (min, max) ->
+            if max? then @max = max else @max = 5
+            if min?
+                for idx in [0..min]
+                    phantom.create (ph) =>
+                        @pool.push ph
+        
+        cursor: 0
+        pool: []
+        fill: ->
+            for conns in [@pool.length()..@max]
+                phantom.create {port: 12340 + @pool.length}, (ph) =>
+                    @pool.push ph
+
+        open: (callback) ->
+            # Note: it's possible to have >@max pools
+            if @pool.length <= @cursor < @max
+                phantom.create {port: 12340 + @pool.length}, (ph) =>
+                    @pool.push ph
+                    callback ph
+            else
+                callback @pool[@cursor]
+
+            @cursor += 1
+                
+    class RandomPhantomStrategy extends PhantomStrategy
+        constructor: (size) ->
+            if size? and typeof size is 'number' then @size = size
+            
+        size: 5
+        pool: []
+
+        open: (callback) ->
+            index = Math.floor Math.random() * @pool.length()
+            if not @pool[index]?
+                phantom.create {port: 12340 + index}, (ph) =>
+                    @pool[idx] = ph
+                    callback ph
+            else
+                callback @pool[index]
+
+    connection = new NewPhantomStrategy()
 
     # Events that may be emitted by a Request
     events =
@@ -274,7 +332,7 @@ binder = (phantom) ->
         end = ->
             @emit events.FINISH
             clearInterval @_interval
-            if @_closeWhenFinished and shared.recycle isnt true
+            if @_closeWhenFinished and connection.supportsAutoClose isnt true
                 @_phantom.exit()
 
         log = (msg) ->
@@ -370,12 +428,15 @@ binder = (phantom) ->
         execute: (url) ->
             @url url   # Set the URL if it was provided
 
-            exec = (ph) =>
+            console.log 'opening'
+            connection.open (ph) =>
                 @_phantom = ph
                 @emit events.PHANTOM_CREATE
+                console.log 'opened'
                 
                 ph.createPage (page) =>
                     @_page = page
+                    console.log 'created page'
                     page.set('onConsoleMessage', (msg) => @emit events.CONSOLE, msg)
                     @emit events.PAGE_CREATE
 
@@ -416,14 +477,6 @@ binder = (phantom) ->
                             @emit events.READY
                             @_action(page)
                             end.call this
-            #phantom.create exec
-            if shared.recycle is false or shared.phantom is null
-                phantom.create (ph) ->
-                    shared.phantom = ph
-                    exec ph
-                    #, {port: 0}
-            else
-                exec shared.phantom
 
     # Ensure that Request can emit events
     Request.prototype.__proto__ = Emitter.prototype
@@ -432,9 +485,14 @@ binder = (phantom) ->
     exports =
         "Request": Request
         "Builder": Builder
+        "ConnectionStrategy":
+            RoundRobin: RoundRobinPhantomStrategy
+            New: NewPhantomStrategy
+            Recycled: RecycledPhantomStrategy
         "events": events
         "recycle": (val) ->
-            shared.recycle = val if typeof val is 'boolean'
+            if val then connection = new RecycledPhantomStrategy
+            else connection = new NewPhantomStrategy
         "create": -> new Builder
         
 
