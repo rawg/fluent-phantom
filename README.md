@@ -74,7 +74,7 @@ A package-level method, `fluent-phantom.setConnectionStrategy(strategy)`, can be
 
 ```coffeescript
 fluent = require 'fluent-phantom'
-fluent.setConnectionStrategy new fluent.ConnectionStrategy.RoundRobin(2, 10)
+fluent.setConnectionStrategy new fluent.ConnectionStrategy.RoundRobin(10, 2)
 ```
 
 ## Builder <a name="builder" />
