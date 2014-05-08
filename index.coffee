@@ -31,7 +31,7 @@ binder = (phantom) ->
     class RecycledPhantomStrategy extends PhantomStrategy
         phantom: null
         open: (callback) ->
-            if not @phantom?
+            if not @phantom? or @phantom.isDead?
                 phantom.create (ph) =>
                     @phantom = ph
                     callback ph
@@ -60,7 +60,7 @@ binder = (phantom) ->
             if @cursor >= @max
                 @cursor = 0
 
-            if @spawned < @max
+            if @spawned < @max or @pool[@cursor].isDead?
                 phantom.create {port: 12340 + @spawned++}, (ph) =>
                     @pool.push ph
                     callback ph
@@ -444,7 +444,6 @@ binder = (phantom) ->
             connection.open (ph) =>
                 @_phantom = ph
                 @emit events.PHANTOM_CREATE
-                
                 ph.createPage (page) =>
                     @_page = page
                     page.set('onConsoleMessage', (msg) => @emit events.CONSOLE, msg)
@@ -487,6 +486,9 @@ binder = (phantom) ->
                             @emit events.READY
                             @_action(page)
                             end.call this
+                catch err
+                    ph.isDead = true
+                    throw err
 
     # Ensure that Request can emit events
     Request.prototype.__proto__ = Emitter.prototype
