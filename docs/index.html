@@ -638,8 +638,14 @@ in the context of the page with access to <code>window</code> and <code>document
                     handler = <span class="hljs-property">@_props</span>.scraper.handler
                     argument = <span class="hljs-property">@_props</span>.scraper.argument
                     <span class="hljs-keyword">if</span> <span class="hljs-keyword">typeof</span> argument <span class="hljs-keyword">is</span> <span class="hljs-string">'undefined'</span> <span class="hljs-keyword">then</span> argument = <span class="hljs-string">''</span>
-                    
-                    req.action <span class="hljs-function"><span class="hljs-params">(page)</span> -&gt;</span> page.evaluate extractor, handler, argument
+
+                    req.action <span class="hljs-function"><span class="hljs-params">(page)</span> -&gt;</span>
+                        pg = page
+                        <span class="hljs-function"><span class="hljs-title">withPageContext</span> = <span class="hljs-params">(args...)</span> -&gt;</span>
+                            args.push pg
+                            handler.apply(@, args)
+
+                        page.evaluate extractor, withPageContext, argument
 
                 <span class="hljs-keyword">when</span> builders.action.css
                     args =
@@ -665,7 +671,13 @@ in the context of the page with access to <code>window</code> and <code>document
 
                         filter <span class="hljs-built_in">document</span>.querySelectorAll(args.query)
                     
-                    req.action <span class="hljs-function"><span class="hljs-params">(page)</span> -&gt;</span> page.evaluate extractor, handler, args
+                    req.action <span class="hljs-function"><span class="hljs-params">(page)</span> -&gt;</span> 
+                        pg = page
+                        <span class="hljs-function"><span class="hljs-title">withPageContext</span> = <span class="hljs-params">(args...)</span> -&gt;</span>
+                            args.push pg
+                            handler.apply(@, args)
+                        page.evaluate extractor, handler, args
+                    
 
             req</pre></div></div>
             

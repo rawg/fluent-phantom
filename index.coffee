@@ -300,8 +300,14 @@ binder = (phantom) ->
                     handler = @_props.scraper.handler
                     argument = @_props.scraper.argument
                     if typeof argument is 'undefined' then argument = ''
-                    
-                    req.action (page) -> page.evaluate extractor, handler, argument
+
+                    req.action (page) ->
+                        pg = page
+                        withPageContext = (args...) ->
+                            args.push pg
+                            handler.apply(@, args)
+
+                        page.evaluate extractor, withPageContext, argument
 
                 when builders.action.css
                     args =
@@ -327,7 +333,13 @@ binder = (phantom) ->
 
                         filter document.querySelectorAll(args.query)
                     
-                    req.action (page) -> page.evaluate extractor, handler, args
+                    req.action (page) -> 
+                        pg = page
+                        withPageContext = (args...) ->
+                            args.push pg
+                            handler.apply(@, args)
+                        page.evaluate extractor, handler, args
+                    
 
             req
 

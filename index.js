@@ -450,7 +450,15 @@
               argument = '';
             }
             req.action(function(page) {
-              return page.evaluate(extractor, handler, argument);
+              var pg, withPageContext;
+              pg = page;
+              withPageContext = function() {
+                var args;
+                args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+                args.push(pg);
+                return handler.apply(this, args);
+              };
+              return page.evaluate(extractor, withPageContext, argument);
             });
             break;
           case builders.action.css:
@@ -486,6 +494,14 @@
               return filter(document.querySelectorAll(args.query));
             };
             req.action(function(page) {
+              var pg, withPageContext;
+              pg = page;
+              withPageContext = function() {
+                var args;
+                args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+                args.push(pg);
+                return handler.apply(this, args);
+              };
               return page.evaluate(extractor, handler, args);
             });
         }

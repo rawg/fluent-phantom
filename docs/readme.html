@@ -186,12 +186,12 @@ phantom.create()
 <li><code>ConnectionStrategy.New</code>: Creates a new Phantom for each request. <em>[default]</em></li>
 <li><code>ConnectionStrategy.Recycled</code>: Recycles the same Phantom connection for each request. This is the simplest way to avoid an EADDRINUSE bug if making many requests.</li>
 <li><code>ConnectionStrategy.RoundRobin(poolSize, minimum)</code>: Accepts <code>poolSize</code> and <code>min</code> number of connections as constructor arguments. </li>
-<li><code>ConnectionStrategy.Random(poolSize)</code>: Accepts the pool <code>size</code> as its constructor argument and selects a connection at random. <em>Warning:</em> This has had very little testing.</li>
+<li><code>ConnectionStrategy.Random(poolSize)</code>: Accepts the pool <code>size</code> as its constructor argument and selects a connection at random.</li>
 </ul>
 <h3 id="changing-the-connection-strategy">Changing the connection strategy</h3>
 <p>A package-level method, <code>fluent-phantom.setConnectionStrategy(strategy)</code>, can be invoked with a new instance of one of the connection strategies above to change the strategy.</p>
 <pre><code class="lang-coffeescript">fluent = require &#39;fluent-phantom&#39;
-fluent.connection = new fluent.ConnectionStrategy.RoundRobin(2, 10)</code></pre>
+fluent.setConnectionStrategy new fluent.ConnectionStrategy.RoundRobin(10, 2)</code></pre>
 <h2 id="builder-a-name-builder-">Builder <a name="builder" /></h2>
 <h3 id="initializing-a-builder-with-create-a-name-initializing-">Initializing a builder with <code>create()</code> <a name="initializing" /></h3>
 <p>Builders can be created with <code>new</code>, but using the package-level <code>create()</code> helper is encouraged, as in the following example:</p>

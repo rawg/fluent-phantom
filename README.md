@@ -124,7 +124,7 @@ Synonyms: `process()`, `receive()`
 
 Specify a callback function to process results. Because scraping performed by `select` happens inside the PhantomJS VM, the results must be serialized to JSON and processed by a function in the Node.js VM where this module is being used. This is where you would publish results to a message queue or persist them to a data store.
 
-The callback will receive one arguments, which will be an array of results – even if there is only one result in the set.
+The callback will receive two arguments. The first will be an array of results – even if there is only one result in the set. The second will be a reference to the `page` object.
 
 #### Builder.properties(property: string, [property2: string], [...]) or Builder.properties(properties: array) <a name="properties" />
 Synonyms: `members()`
@@ -140,7 +140,7 @@ Synonyms: `extract()`
 
 See also: [`when()`](#when-function), [`handle`](#handle)
 
-The `select` method can also accept a function as its first argument. This function will run in the context of the page being scraped within the PhantomJS VM, and its return value will be passed as the first and only argument to [`handle`](#handle) for further processing. 
+The `select` method can also accept a function as its first argument. This function will run in the context of the page being scraped within the PhantomJS VM, and its return value will be passed as the first argument to [`handle`](#handle) for further processing. The second argument to [`handle`](#handle) will be a reference to the `page` object.
 
 Because the function body is effectively serialized and deserialized, any closed over variables will be lost. To allow for some dynamism, a JSON-serializable argument may be provided like a CSS selector or a record identifier. This argument will be the first and only passed to the extractor function when invoked.
 
