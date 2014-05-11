@@ -11,7 +11,7 @@ class MockPhantom
             callback = options
             opts = {}
         
-        @emit 'create', options
+        @emit 'create', opts
 
         callback @
 

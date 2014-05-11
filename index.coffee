@@ -28,6 +28,12 @@ binder = (phantom) ->
         open: (callback) ->
             phantom.create callback
 
+    class NewPortPhantomStrategy extends PhantomStrategy
+        @port: 12340
+        supportsAutoClose: true
+        open: (callback) ->
+            phantom.create {port: NewPortPhantomStrategy.port++}, callback
+    
     class RecycledPhantomStrategy extends PhantomStrategy
         phantom: null
         open: (callback) ->
@@ -38,35 +44,58 @@ binder = (phantom) ->
             else
                 callback @phantom
 
-    class RoundRobinPhantomStrategy extends PhantomStrategy
-        constructor: (max, min) ->
-            @cursor = 0
+    class PooledPhantomStrategy extends PhantomStrategy
+        constructor: (@size) ->
             @pool = []
-            @spawned = 0
+            @busy = []
+            @queue = []
+            @created = 0
 
-            if max? then @max = max else @max = 5
+        fill: (upto = @size) ->
+            for index in [0...upto]
+                @create index
+
+        create: (index) ->
+            if index < @size and typeof @pool[index] isnt 'object' and !@busy[index]
+                @busy[index] = true
+                phantom.create {port: 12340 + @created++}, (ph) =>
+                    @pool[index] = ph
+                    @busy[index] = false
+                    @ready(index)
+
+        ready: (index) ->
+            if typeof @queue[index] is 'function'
+                @exec(index, @queue[index])
+                delete @queue[index]
+
+        exec: (index, callback) ->
+            if @busy[index]
+                if typeof @queue[index] isnt 'function'
+                    @queue[index] = callback
+                else
+                    throw new Error("Easy trigger, you're issuing too many requests. These things take time!")
+            else
+                callback @pool[index]
+
+
+
+
+
+    class RoundRobinPhantomStrategy extends PooledPhantomStrategy
+        constructor: (size, min) ->
+            super(size)
+            @cursor = 0
+
             if min?
-                for idx in [0...min]
-                    phantom.create {port: 12340 + @spawned++}, (ph) =>
-                        @pool.push ph
+                @fill(min)
         
-        fill: ->
-            for conns in [@spawned...@max]
-                @spawned++
-                phantom.create {port: 12340 + conns}, (ph) =>
-                    @pool.push ph
-
         open: (callback) ->
+
             if @cursor >= @max
                 @cursor = 0
-
-            if @spawned < @max
-                phantom.create {port: 12340 + @spawned++}, (ph) =>
-                    @pool.push ph
-                    callback ph
-            else
-                callback @pool[@cursor]
-
+            
+            @create @cursor
+            @exec @cursor, callback
             @cursor++
 
                 
