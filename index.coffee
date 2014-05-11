@@ -99,27 +99,11 @@ binder = (phantom) ->
             @cursor++
 
                 
-    class RandomPhantomStrategy extends PhantomStrategy
-        constructor: (size) ->
-            @size = 5
-            @pool = []
-            if size? and typeof size is 'number' then @size = size
-
-            
-        fill: ->
-            for idx in [0..@size]
-                if not @pool[idx]? or typeof @pool[idx] isnt 'object'
-                    phantom.create {port: 12340 + idx}, (ph) =>
-                        @pool[idx] = ph
-
+    class RandomPhantomStrategy extends PooledPhantomStrategy
         open: (callback) ->
             index = Math.floor Math.random() * @size
-            if not @pool[index]? or typeof @pool[index] isnt 'object'
-                phantom.create {port: 12340 + index}, (ph) =>
-                    @pool[index] = ph
-                    callback ph
-            else
-                callback @pool[index]
+            @create index
+            @exec index, callback
 
     connection = new NewPhantomStrategy()
 
@@ -539,6 +523,7 @@ binder = (phantom) ->
         "ConnectionStrategy":
             RoundRobin: RoundRobinPhantomStrategy
             New: NewPhantomStrategy
+            NewPort: NewPortPhantomStrategy
             Recycled: RecycledPhantomStrategy
             Random: RandomPhantomStrategy
         "events": events
