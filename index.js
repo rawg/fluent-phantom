@@ -11,7 +11,7 @@
   };
 
   binder = function(phantom) {
-    var Builder, NewPhantomStrategy, PhantomStrategy, RandomPhantomStrategy, RecycledPhantomStrategy, Request, RoundRobinPhantomStrategy, builders, connection, events, exports, nodeProperties;
+    var Builder, NewPhantomStrategy, NewPortPhantomStrategy, PhantomStrategy, PooledPhantomStrategy, RandomPhantomStrategy, RecycledPhantomStrategy, Request, RoundRobinPhantomStrategy, builders, connection, events, exports, nodeProperties;
     phantom = typeof phantom === 'object' ? phantom : require('phantom');
     PhantomStrategy = (function() {
       function PhantomStrategy() {}
@@ -39,6 +39,26 @@
       return NewPhantomStrategy;
 
     })(PhantomStrategy);
+    NewPortPhantomStrategy = (function(_super) {
+      __extends(NewPortPhantomStrategy, _super);
+
+      function NewPortPhantomStrategy() {
+        return NewPortPhantomStrategy.__super__.constructor.apply(this, arguments);
+      }
+
+      NewPortPhantomStrategy.port = 12340;
+
+      NewPortPhantomStrategy.prototype.supportsAutoClose = true;
+
+      NewPortPhantomStrategy.prototype.open = function(callback) {
+        return phantom.create({
+          port: NewPortPhantomStrategy.port++
+        }, callback);
+      };
+
+      return NewPortPhantomStrategy;
+
+    })(PhantomStrategy);
     RecycledPhantomStrategy = (function(_super) {
       __extends(RecycledPhantomStrategy, _super);
 
@@ -64,120 +84,106 @@
       return RecycledPhantomStrategy;
 
     })(PhantomStrategy);
-    RoundRobinPhantomStrategy = (function(_super) {
-      __extends(RoundRobinPhantomStrategy, _super);
+    PooledPhantomStrategy = (function(_super) {
+      __extends(PooledPhantomStrategy, _super);
 
-      function RoundRobinPhantomStrategy(max, min) {
-        var idx, _i;
-        this.cursor = 0;
+      function PooledPhantomStrategy(size) {
+        this.size = size;
         this.pool = [];
-        this.spawned = 0;
-        if (max != null) {
-          this.max = max;
-        } else {
-          this.max = 5;
-        }
-        if (min != null) {
-          for (idx = _i = 0; 0 <= min ? _i < min : _i > min; idx = 0 <= min ? ++_i : --_i) {
-            phantom.create({
-              port: 12340 + this.spawned++
-            }, (function(_this) {
-              return function(ph) {
-                return _this.pool.push(ph);
-              };
-            })(this));
-          }
-        }
+        this.busy = [];
+        this.queue = [];
+        this.created = 0;
       }
 
-      RoundRobinPhantomStrategy.prototype.fill = function() {
-        var conns, _i, _ref, _ref1, _results;
+      PooledPhantomStrategy.prototype.fill = function(upto) {
+        var index, _i, _results;
+        if (upto == null) {
+          upto = this.size;
+        }
         _results = [];
-        for (conns = _i = _ref = this.spawned, _ref1 = this.max; _ref <= _ref1 ? _i < _ref1 : _i > _ref1; conns = _ref <= _ref1 ? ++_i : --_i) {
-          this.spawned++;
-          _results.push(phantom.create({
-            port: 12340 + conns
-          }, (function(_this) {
-            return function(ph) {
-              return _this.pool.push(ph);
-            };
-          })(this)));
+        for (index = _i = 0; 0 <= upto ? _i < upto : _i > upto; index = 0 <= upto ? ++_i : --_i) {
+          _results.push(this.create(index));
         }
         return _results;
       };
 
-      RoundRobinPhantomStrategy.prototype.open = function(callback) {
-        if (this.cursor >= this.max) {
-          this.cursor = 0;
-        }
-        if (this.spawned < this.max) {
-          phantom.create({
-            port: 12340 + this.spawned++
-          }, (function(_this) {
-            return function(ph) {
-              _this.pool.push(ph);
-              return callback(ph);
-            };
-          })(this));
-        } else {
-          callback(this.pool[this.cursor]);
-        }
-        return this.cursor++;
-      };
-
-      return RoundRobinPhantomStrategy;
-
-    })(PhantomStrategy);
-    RandomPhantomStrategy = (function(_super) {
-      __extends(RandomPhantomStrategy, _super);
-
-      function RandomPhantomStrategy(size) {
-        this.size = 5;
-        this.pool = [];
-        if ((size != null) && typeof size === 'number') {
-          this.size = size;
-        }
-      }
-
-      RandomPhantomStrategy.prototype.fill = function() {
-        var idx, _i, _ref, _results;
-        _results = [];
-        for (idx = _i = 0, _ref = this.size; 0 <= _ref ? _i <= _ref : _i >= _ref; idx = 0 <= _ref ? ++_i : --_i) {
-          if ((this.pool[idx] == null) || typeof this.pool[idx] !== 'object') {
-            _results.push(phantom.create({
-              port: 12340 + idx
-            }, (function(_this) {
-              return function(ph) {
-                return _this.pool[idx] = ph;
-              };
-            })(this)));
-          } else {
-            _results.push(void 0);
-          }
-        }
-        return _results;
-      };
-
-      RandomPhantomStrategy.prototype.open = function(callback) {
-        var index;
-        index = Math.floor(Math.random() * this.size);
-        if ((this.pool[index] == null) || typeof this.pool[index] !== 'object') {
+      PooledPhantomStrategy.prototype.create = function(index) {
+        if (index < this.size && typeof this.pool[index] !== 'object' && !this.busy[index]) {
+          this.busy[index] = true;
           return phantom.create({
-            port: 12340 + index
+            port: 12340 + this.created++
           }, (function(_this) {
             return function(ph) {
               _this.pool[index] = ph;
-              return callback(ph);
+              _this.busy[index] = false;
+              return _this.ready(index);
             };
           })(this));
+        }
+      };
+
+      PooledPhantomStrategy.prototype.ready = function(index) {
+        if (typeof this.queue[index] === 'function') {
+          this.exec(index, this.queue[index]);
+          return delete this.queue[index];
+        }
+      };
+
+      PooledPhantomStrategy.prototype.exec = function(index, callback) {
+        if (this.busy[index]) {
+          if (typeof this.queue[index] !== 'function') {
+            return this.queue[index] = callback;
+          } else {
+            throw new Error("Easy trigger, you're issuing too many requests. These things take time!");
+          }
         } else {
           return callback(this.pool[index]);
         }
       };
 
-      return RandomPhantomStrategy;
+      return PooledPhantomStrategy;
 
     })(PhantomStrategy);
+    RoundRobinPhantomStrategy = (function(_super) {
+      __extends(RoundRobinPhantomStrategy, _super);
+
+      function RoundRobinPhantomStrategy(size, min) {
+        RoundRobinPhantomStrategy.__super__.constructor.call(this, size);
+        this.cursor = 0;
+        if (min != null) {
+          this.fill(min);
+        }
+      }
+
+      RoundRobinPhantomStrategy.prototype.open = function(callback) {
+        if (this.cursor >= this.max) {
+          this.cursor = 0;
+        }
+        this.create(this.cursor);
+        this.exec(this.cursor, callback);
+        return this.cursor++;
+      };
+
+      return RoundRobinPhantomStrategy;
+
+    })(PooledPhantomStrategy);
+    RandomPhantomStrategy = (function(_super) {
+      __extends(RandomPhantomStrategy, _super);
+
+      function RandomPhantomStrategy() {
+        return RandomPhantomStrategy.__super__.constructor.apply(this, arguments);
+      }
+
+      RandomPhantomStrategy.prototype.open = function(callback) {
+        var index;
+        index = Math.floor(Math.random() * this.size);
+        this.create(index);
+        return this.exec(index, callback);
+      };
+
+      return RandomPhantomStrategy;
+
+    })(PooledPhantomStrategy);
     connection = new NewPhantomStrategy();
     events = {
       HALT: 'halted',
@@ -702,6 +708,7 @@
       "ConnectionStrategy": {
         RoundRobin: RoundRobinPhantomStrategy,
         New: NewPhantomStrategy,
+        NewPort: NewPortPhantomStrategy,
         Recycled: RecycledPhantomStrategy,
         Random: RandomPhantomStrategy
       },

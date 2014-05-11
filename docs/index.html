@@ -128,6 +128,12 @@ mock for unit testing.</p>
         <span class="hljs-attribute">open</span>: <span class="hljs-function"><span class="hljs-params">(callback)</span> -&gt;</span>
             phantom.create callback
 
+    <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">NewPortPhantomStrategy</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">PhantomStrategy</span></span>
+        <span class="hljs-property">@port</span>: <span class="hljs-number">12340</span>
+        <span class="hljs-attribute">supportsAutoClose</span>: <span class="hljs-literal">true</span>
+        <span class="hljs-attribute">open</span>: <span class="hljs-function"><span class="hljs-params">(callback)</span> -&gt;</span>
+            phantom.create {<span class="hljs-attribute">port</span>: NewPortPhantomStrategy.port++}, callback
+    
     <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">RecycledPhantomStrategy</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">PhantomStrategy</span></span>
         <span class="hljs-attribute">phantom</span>: <span class="hljs-literal">null</span>
         <span class="hljs-attribute">open</span>: <span class="hljs-function"><span class="hljs-params">(callback)</span> -&gt;</span>
@@ -138,59 +144,66 @@ mock for unit testing.</p>
             <span class="hljs-keyword">else</span>
                 callback <span class="hljs-property">@phantom</span>
 
-    <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">RoundRobinPhantomStrategy</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">PhantomStrategy</span></span>
-        <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(max, min)</span> -&gt;</span>
-            <span class="hljs-property">@cursor</span> = <span class="hljs-number">0</span>
+    <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">PooledPhantomStrategy</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">PhantomStrategy</span></span>
+        <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@size</span>)</span> -&gt;</span>
             <span class="hljs-property">@pool</span> = []
-            <span class="hljs-property">@spawned</span> = <span class="hljs-number">0</span>
+            <span class="hljs-property">@busy</span> = []
+            <span class="hljs-property">@queue</span> = []
+            <span class="hljs-property">@created</span> = <span class="hljs-number">0</span>
 
-            <span class="hljs-keyword">if</span> max? <span class="hljs-keyword">then</span> <span class="hljs-property">@max</span> = max <span class="hljs-keyword">else</span> <span class="hljs-property">@max</span> = <span class="hljs-number">5</span>
+        <span class="hljs-attribute">fill</span>: <span class="hljs-function"><span class="hljs-params">(upto = <span class="hljs-property">@size</span>)</span> -&gt;</span>
+            <span class="hljs-keyword">for</span> index <span class="hljs-keyword">in</span> [<span class="hljs-number">0.</span>..upto]
+                <span class="hljs-property">@create</span> index
+
+        <span class="hljs-attribute">create</span>: <span class="hljs-function"><span class="hljs-params">(index)</span> -&gt;</span>
+            <span class="hljs-keyword">if</span> index &lt; <span class="hljs-property">@size</span> <span class="hljs-keyword">and</span> <span class="hljs-keyword">typeof</span> <span class="hljs-property">@pool</span>[index] <span class="hljs-keyword">isnt</span> <span class="hljs-string">'object'</span> <span class="hljs-keyword">and</span> !<span class="hljs-property">@busy</span>[index]
+                <span class="hljs-property">@busy</span>[index] = <span class="hljs-literal">true</span>
+                phantom.create {<span class="hljs-attribute">port</span>: <span class="hljs-number">12340</span> + <span class="hljs-property">@created</span>++}, <span class="hljs-function"><span class="hljs-params">(ph)</span> =&gt;</span>
+                    <span class="hljs-property">@pool</span>[index] = ph
+                    <span class="hljs-property">@busy</span>[index] = <span class="hljs-literal">false</span>
+                    <span class="hljs-property">@ready</span>(index)
+
+        <span class="hljs-attribute">ready</span>: <span class="hljs-function"><span class="hljs-params">(index)</span> -&gt;</span>
+            <span class="hljs-keyword">if</span> <span class="hljs-keyword">typeof</span> <span class="hljs-property">@queue</span>[index] <span class="hljs-keyword">is</span> <span class="hljs-string">'function'</span>
+                <span class="hljs-property">@exec</span>(index, <span class="hljs-property">@queue</span>[index])
+                <span class="hljs-keyword">delete</span> <span class="hljs-property">@queue</span>[index]
+
+        <span class="hljs-attribute">exec</span>: <span class="hljs-function"><span class="hljs-params">(index, callback)</span> -&gt;</span>
+            <span class="hljs-keyword">if</span> <span class="hljs-property">@busy</span>[index]
+                <span class="hljs-keyword">if</span> <span class="hljs-keyword">typeof</span> <span class="hljs-property">@queue</span>[index] <span class="hljs-keyword">isnt</span> <span class="hljs-string">'function'</span>
+                    <span class="hljs-property">@queue</span>[index] = callback
+                <span class="hljs-keyword">else</span>
+                    <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> Error(<span class="hljs-string">"Easy trigger, you're issuing too many requests. These things take time!"</span>)
+            <span class="hljs-keyword">else</span>
+                callback <span class="hljs-property">@pool</span>[index]
+
+
+
+
+
+    <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">RoundRobinPhantomStrategy</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">PooledPhantomStrategy</span></span>
+        <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(size, min)</span> -&gt;</span>
+            <span class="hljs-keyword">super</span>(size)
+            <span class="hljs-property">@cursor</span> = <span class="hljs-number">0</span>
+
             <span class="hljs-keyword">if</span> min?
-                <span class="hljs-keyword">for</span> idx <span class="hljs-keyword">in</span> [<span class="hljs-number">0.</span>..min]
-                    phantom.create {<span class="hljs-attribute">port</span>: <span class="hljs-number">12340</span> + <span class="hljs-property">@spawned</span>++}, <span class="hljs-function"><span class="hljs-params">(ph)</span> =&gt;</span>
-                        <span class="hljs-property">@pool</span>.push ph
+                <span class="hljs-property">@fill</span>(min)
         
-        <span class="hljs-attribute">fill</span>:<span class="hljs-function"> -&gt;</span>
-            <span class="hljs-keyword">for</span> conns <span class="hljs-keyword">in</span> [<span class="hljs-property">@spawned</span>...<span class="hljs-property">@max</span>]
-                <span class="hljs-property">@spawned</span>++
-                phantom.create {<span class="hljs-attribute">port</span>: <span class="hljs-number">12340</span> + conns}, <span class="hljs-function"><span class="hljs-params">(ph)</span> =&gt;</span>
-                    <span class="hljs-property">@pool</span>.push ph
-
         <span class="hljs-attribute">open</span>: <span class="hljs-function"><span class="hljs-params">(callback)</span> -&gt;</span>
+
             <span class="hljs-keyword">if</span> <span class="hljs-property">@cursor</span> &gt;= <span class="hljs-property">@max</span>
                 <span class="hljs-property">@cursor</span> = <span class="hljs-number">0</span>
-
-            <span class="hljs-keyword">if</span> <span class="hljs-property">@spawned</span> &lt; <span class="hljs-property">@max</span>
-                phantom.create {<span class="hljs-attribute">port</span>: <span class="hljs-number">12340</span> + <span class="hljs-property">@spawned</span>++}, <span class="hljs-function"><span class="hljs-params">(ph)</span> =&gt;</span>
-                    <span class="hljs-property">@pool</span>.push ph
-                    callback ph
-            <span class="hljs-keyword">else</span>
-                callback <span class="hljs-property">@pool</span>[<span class="hljs-property">@cursor</span>]
-
+            
+            <span class="hljs-property">@create</span> <span class="hljs-property">@cursor</span>
+            <span class="hljs-property">@exec</span> <span class="hljs-property">@cursor</span>, callback
             <span class="hljs-property">@cursor</span>++
 
                 
-    <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">RandomPhantomStrategy</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">PhantomStrategy</span></span>
-        <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(size)</span> -&gt;</span>
-            <span class="hljs-property">@size</span> = <span class="hljs-number">5</span>
-            <span class="hljs-property">@pool</span> = []
-            <span class="hljs-keyword">if</span> size? <span class="hljs-keyword">and</span> <span class="hljs-keyword">typeof</span> size <span class="hljs-keyword">is</span> <span class="hljs-string">'number'</span> <span class="hljs-keyword">then</span> <span class="hljs-property">@size</span> = size
-
-            
-        <span class="hljs-attribute">fill</span>:<span class="hljs-function"> -&gt;</span>
-            <span class="hljs-keyword">for</span> idx <span class="hljs-keyword">in</span> [<span class="hljs-number">0.</span>.<span class="hljs-property">@size</span>]
-                <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> <span class="hljs-property">@pool</span>[idx]? <span class="hljs-keyword">or</span> <span class="hljs-keyword">typeof</span> <span class="hljs-property">@pool</span>[idx] <span class="hljs-keyword">isnt</span> <span class="hljs-string">'object'</span>
-                    phantom.create {<span class="hljs-attribute">port</span>: <span class="hljs-number">12340</span> + idx}, <span class="hljs-function"><span class="hljs-params">(ph)</span> =&gt;</span>
-                        <span class="hljs-property">@pool</span>[idx] = ph
-
+    <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">RandomPhantomStrategy</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">PooledPhantomStrategy</span></span>
         <span class="hljs-attribute">open</span>: <span class="hljs-function"><span class="hljs-params">(callback)</span> -&gt;</span>
             index = Math.floor Math.random() * <span class="hljs-property">@size</span>
-            <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> <span class="hljs-property">@pool</span>[index]? <span class="hljs-keyword">or</span> <span class="hljs-keyword">typeof</span> <span class="hljs-property">@pool</span>[index] <span class="hljs-keyword">isnt</span> <span class="hljs-string">'object'</span>
-                phantom.create {<span class="hljs-attribute">port</span>: <span class="hljs-number">12340</span> + index}, <span class="hljs-function"><span class="hljs-params">(ph)</span> =&gt;</span>
-                    <span class="hljs-property">@pool</span>[index] = ph
-                    callback ph
-            <span class="hljs-keyword">else</span>
-                callback <span class="hljs-property">@pool</span>[index]
+            <span class="hljs-property">@create</span> index
+            <span class="hljs-property">@exec</span> index, callback
 
     connection = <span class="hljs-keyword">new</span> NewPhantomStrategy()</pre></div></div>
             
@@ -1052,6 +1065,7 @@ have been satisfied or we run out of time.</p>
         <span class="hljs-string">"ConnectionStrategy"</span>:
             <span class="hljs-attribute">RoundRobin</span>: RoundRobinPhantomStrategy
             <span class="hljs-attribute">New</span>: NewPhantomStrategy
+            <span class="hljs-attribute">NewPort</span>: NewPortPhantomStrategy
             <span class="hljs-attribute">Recycled</span>: RecycledPhantomStrategy
             <span class="hljs-attribute">Random</span>: RandomPhantomStrategy
         <span class="hljs-string">"events"</span>: events
