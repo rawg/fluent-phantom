@@ -64,7 +64,9 @@ describe 'A round robin phantom pooling strategy', ->
         
         wait = []
         for i in [0...bounds.requests]
-            strat.open (ph) -> counters.requests++
+            strat.open (ph, done) -> 
+                counters.requests++
+                done()
         
         counters.requests.should.be.exactly(bounds.requests)
         counters.connections.should.be.exactly(bounds.connections)
@@ -108,7 +110,9 @@ describe 'A random phantom pooling strategy', ->
         strat = new strategy.Random bounds.size
 
         for i in [0...bounds.create]
-            strat.open (ph) -> found.created++
+            strat.open (ph, done) -> 
+                found.created++
+                done()
 
         for i, conn of strat.pool
             if typeof conn is 'object' then found.initialized++

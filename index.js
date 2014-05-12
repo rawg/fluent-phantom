@@ -16,6 +16,8 @@
     PhantomStrategy = (function() {
       function PhantomStrategy() {}
 
+      PhantomStrategy.prototype.port = 12340;
+
       PhantomStrategy.prototype.supportsAutoClose = false;
 
       PhantomStrategy.prototype.open = function(callback) {};
@@ -33,7 +35,9 @@
       NewPhantomStrategy.prototype.supportsAutoClose = true;
 
       NewPhantomStrategy.prototype.open = function(callback) {
-        return phantom.create(callback);
+        return phantom.create({
+          port: this.port
+        }, callback);
       };
 
       return NewPhantomStrategy;
@@ -46,13 +50,11 @@
         return NewPortPhantomStrategy.__super__.constructor.apply(this, arguments);
       }
 
-      NewPortPhantomStrategy.port = 12340;
-
       NewPortPhantomStrategy.prototype.supportsAutoClose = true;
 
       NewPortPhantomStrategy.prototype.open = function(callback) {
         return phantom.create({
-          port: NewPortPhantomStrategy.port++
+          port: this.port++
         }, callback);
       };
 
@@ -87,12 +89,46 @@
     PooledPhantomStrategy = (function(_super) {
       __extends(PooledPhantomStrategy, _super);
 
-      function PooledPhantomStrategy(size) {
-        this.size = size;
+      function PooledPhantomStrategy(size, queueDepth) {
+        var i, tick, _i, _ref;
+        this.size = size != null ? size : 4;
+        this.queueDepth = queueDepth != null ? queueDepth : 4;
         this.pool = [];
         this.busy = [];
-        this.queue = [];
         this.created = 0;
+        this.queue = [];
+        this.timer = [];
+        this.timeout = 5000;
+        this.interval = null;
+        for (i = _i = 0, _ref = this.size; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
+          this.busy[i] = false;
+          this.timer[i] = null;
+          this.queue[i] = [];
+        }
+        tick = (function(_this) {
+          return function() {
+            var begin, index, _j, _len, _ref1, _results;
+            _ref1 = _this.timer;
+            _results = [];
+            for (begin = _j = 0, _len = _ref1.length; _j < _len; begin = ++_j) {
+              index = _ref1[begin];
+              if (begin !== null) {
+                if (now() - begin > _this.timeout) {
+                  _this.busy[index] = false;
+                  _this.timer[index] = null;
+                  _this.pool[index] = null;
+                  _results.push(_this.create(index));
+                } else {
+                  _results.push(void 0);
+                }
+              } else {
+                _results.push(void 0);
+              }
+            }
+            return _results;
+          };
+        })(this);
+        this.interval = setInterval(tick, Math.floor(this.timeout / 4));
       }
 
       PooledPhantomStrategy.prototype.fill = function(upto) {
@@ -111,7 +147,7 @@
         if (index < this.size && typeof this.pool[index] !== 'object' && !this.busy[index]) {
           this.busy[index] = true;
           return phantom.create({
-            port: 12340 + this.created++
+            port: this.port + this.created++
           }, (function(_this) {
             return function(ph) {
               _this.pool[index] = ph;
@@ -123,22 +159,57 @@
       };
 
       PooledPhantomStrategy.prototype.ready = function(index) {
-        if (typeof this.queue[index] === 'function') {
-          this.exec(index, this.queue[index]);
-          return delete this.queue[index];
+        var callback;
+        if (this.queue[index].length > 0) {
+          callback = this.queue[index].shift();
+          return this.exec(index, callback);
         }
       };
 
+      PooledPhantomStrategy.prototype.finished = function(index) {
+        this.timer[index] = null;
+        this.busy[index] = false;
+        return this.ready(index);
+      };
+
       PooledPhantomStrategy.prototype.exec = function(index, callback) {
+        var done, idx, min, pos, _i, _ref;
         if (this.busy[index]) {
-          if (typeof this.queue[index] !== 'function') {
-            return this.queue[index] = callback;
+          if (this.queue[index].length < this.queueDepth - 1) {
+            return this.queue[index].push(callback);
           } else {
-            throw new Error("Easy trigger, you're issuing too many requests. These things take time!");
+            pos = 0;
+            min = Infinity;
+            for (idx = _i = 0, _ref = this.size; 0 <= _ref ? _i < _ref : _i > _ref; idx = 0 <= _ref ? ++_i : --_i) {
+              min = Math.min(min, this.queue[pos].length);
+            }
+            if (min >= this.queueDepth) {
+              throw new Error("Easy trigger, you're issuing too many requests. These things take time!");
+            } else {
+              return this.queue[pos].push(callback);
+            }
           }
         } else {
-          return callback(this.pool[index]);
+          this.busy[index] = true;
+          this.timer[index] = now();
+          done = (function(_this) {
+            return function() {
+              return _this.finished(index);
+            };
+          })(this);
+          return callback(this.pool[index], done);
         }
+      };
+
+      PooledPhantomStrategy.prototype.getIndex = function() {
+        return 0;
+      };
+
+      PooledPhantomStrategy.prototype.open = function(callback) {
+        var index;
+        index = this.getIndex();
+        this.create(index);
+        return this.exec(index, callback);
       };
 
       return PooledPhantomStrategy;
@@ -147,20 +218,18 @@
     RoundRobinPhantomStrategy = (function(_super) {
       __extends(RoundRobinPhantomStrategy, _super);
 
-      function RoundRobinPhantomStrategy(size, min) {
-        RoundRobinPhantomStrategy.__super__.constructor.call(this, size);
+      function RoundRobinPhantomStrategy(size, min, queueDepth) {
+        RoundRobinPhantomStrategy.__super__.constructor.call(this, size, queueDepth);
         this.cursor = 0;
         if (min != null) {
           this.fill(min);
         }
       }
 
-      RoundRobinPhantomStrategy.prototype.open = function(callback) {
-        if (this.cursor >= this.max) {
+      RoundRobinPhantomStrategy.prototype.getIndex = function() {
+        if (this.cursor >= this.size) {
           this.cursor = 0;
         }
-        this.create(this.cursor);
-        this.exec(this.cursor, callback);
         return this.cursor++;
       };
 
@@ -174,11 +243,8 @@
         return RandomPhantomStrategy.__super__.constructor.apply(this, arguments);
       }
 
-      RandomPhantomStrategy.prototype.open = function(callback) {
-        var index;
-        index = Math.floor(Math.random() * this.size);
-        this.create(index);
-        return this.exec(index, callback);
+      RandomPhantomStrategy.prototype.getIndex = function() {
+        return Math.floor(Math.random() * this.size);
       };
 
       return RandomPhantomStrategy;
@@ -533,6 +599,9 @@
       end = function() {
         this.emit(events.FINISH);
         clearInterval(this._interval);
+        if (typeof this._onFinish === 'function') {
+          this._onFinish();
+        }
         if (this._closeWhenFinished && connection.supportsAutoClose) {
           return this._phantom.exit();
         }
@@ -549,6 +618,7 @@
         this._interval = null;
         this._phantom = null;
         this._page = null;
+        this._onFinish = null;
         this._timeout = 3000;
         this._bindConsole = false;
         this._debug = false;
@@ -650,7 +720,8 @@
       Request.prototype.execute = function(url) {
         this.url(url);
         return connection.open((function(_this) {
-          return function(ph) {
+          return function(ph, doneWithConnection) {
+            _this._onFinish = doneWithConnection;
             _this._phantom = ph;
             _this.emit(events.PHANTOM_CREATE);
             return ph.createPage(function(page) {
@@ -705,12 +776,8 @@
     return exports = {
       "Request": Request,
       "Builder": Builder,
-      "ConnectionStrategy": {
-        RoundRobin: RoundRobinPhantomStrategy,
-        New: NewPhantomStrategy,
-        NewPort: NewPortPhantomStrategy,
-        Recycled: RecycledPhantomStrategy,
-        Random: RandomPhantomStrategy
+      "create": function() {
+        return new Builder;
       },
       "events": events,
       "recycle": function(val) {
@@ -720,10 +787,26 @@
           return connection = new NewPhantomStrategy;
         }
       },
-      "create": function() {
-        return new Builder;
+      "ConnectionStrategy": {
+        RoundRobin: RoundRobinPhantomStrategy,
+        New: NewPhantomStrategy,
+        NewPort: NewPortPhantomStrategy,
+        Recycled: RecycledPhantomStrategy,
+        Random: RandomPhantomStrategy
       },
       setConnectionStrategy: function(strategy) {
+        if (strategy instanceof PhantomStrategy) {
+          return connection = strategy;
+        } else {
+          throw Error("Invalid connection strategy");
+        }
+      },
+      "RoundRobin": RoundRobinPhantomStrategy,
+      "RandomPool": RandomPhantomStrategy,
+      "NewPhantom": NewPhantomStrategy,
+      "NewPhantomAndPort": NewPortPhantomStrategy,
+      "RecycledPhantom": RecycledPhantomStrategy,
+      "connectWith": function(strategy) {
         if (strategy instanceof PhantomStrategy) {
           return connection = strategy;
         } else {

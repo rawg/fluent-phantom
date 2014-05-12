@@ -20,19 +20,19 @@ binder = (phantom) ->
 
     # Connection strategies
     class PhantomStrategy
+        port: 12340
         supportsAutoClose: false
         open: (callback) ->  # phantom.create((ph) -> )
 
     class NewPhantomStrategy extends PhantomStrategy
         supportsAutoClose: true
         open: (callback) ->
-            phantom.create callback
+            phantom.create {port: @port}, callback
 
     class NewPortPhantomStrategy extends PhantomStrategy
-        @port: 12340
         supportsAutoClose: true
         open: (callback) ->
-            phantom.create {port: NewPortPhantomStrategy.port++}, callback
+            phantom.create {port: @port++}, callback
     
     class RecycledPhantomStrategy extends PhantomStrategy
         phantom: null
@@ -45,11 +45,30 @@ binder = (phantom) ->
                 callback @phantom
 
     class PooledPhantomStrategy extends PhantomStrategy
-        constructor: (@size) ->
+        constructor: (@size = 4, @queueDepth = 4) ->
             @pool = []
             @busy = []
+            @created = 0  # Number of connections created; used to keep ports unique
             @queue = []
-            @created = 0
+            @timer = []
+            @timeout = 5000 # ms to wait before releasing and recreating a connection
+            @interval = null
+
+            for i in [0...@size]
+                @busy[i] = false
+                @timer[i] = null
+                @queue[i] = []
+
+            tick = =>
+                for index, begin in @timer
+                    if begin isnt null
+                        if now() - begin > @timeout
+                            @busy[index] = false
+                            @timer[index] = null
+                            @pool[index] = null
+                            @create index
+
+            @interval = setInterval tick, Math.floor(@timeout / 4)
 
         fill: (upto = @size) ->
             for index in [0...upto]
@@ -58,52 +77,70 @@ binder = (phantom) ->
         create: (index) ->
             if index < @size and typeof @pool[index] isnt 'object' and !@busy[index]
                 @busy[index] = true
-                phantom.create {port: 12340 + @created++}, (ph) =>
+                phantom.create {port: @port + @created++}, (ph) =>
                     @pool[index] = ph
                     @busy[index] = false
                     @ready(index)
 
         ready: (index) ->
-            if typeof @queue[index] is 'function'
-                @exec(index, @queue[index])
-                delete @queue[index]
+            if @queue[index].length > 0
+                callback = @queue[index].shift()
+                @exec(index, callback)
+        
+        finished: (index) ->
+            @timer[index] = null
+            @busy[index] = false
+            @ready(index)
 
         exec: (index, callback) ->
             if @busy[index]
-                if typeof @queue[index] isnt 'function'
-                    @queue[index] = callback
+                if @queue[index].length < @queueDepth - 1
+                    @queue[index].push callback
                 else
-                    throw new Error("Easy trigger, you're issuing too many requests. These things take time!")
+                    pos = 0
+                    min = Infinity
+                    for idx in [0...@size]
+                        min = Math.min min, @queue[pos].length
+
+                    if min >= @queueDepth
+                        throw new Error("Easy trigger, you're issuing too many requests. These things take time!")
+                    else
+                        @queue[pos].push callback
+
             else
-                callback @pool[index]
+                @busy[index] = true
+                @timer[index] = now()
+                done = =>
+                    @finished(index)
+
+                callback(@pool[index], done)
 
 
+        getIndex: -> 0 # Implement this in child classes!
+            
+        open: (callback) ->
+            index = @getIndex()
+            @create index
+            @exec index, callback
 
 
 
     class RoundRobinPhantomStrategy extends PooledPhantomStrategy
-        constructor: (size, min) ->
-            super(size)
+        constructor: (size, min, queueDepth) ->
+            super(size, queueDepth)
             @cursor = 0
 
             if min?
                 @fill(min)
-        
-        open: (callback) ->
-
-            if @cursor >= @max
+       
+        getIndex: ->
+            if @cursor >= @size
                 @cursor = 0
-            
-            @create @cursor
-            @exec @cursor, callback
             @cursor++
 
                 
     class RandomPhantomStrategy extends PooledPhantomStrategy
-        open: (callback) ->
-            index = Math.floor Math.random() * @size
-            @create index
-            @exec index, callback
+        getIndex: -> Math.floor Math.random() * @size
 
     connection = new NewPhantomStrategy()
 
@@ -370,6 +407,10 @@ binder = (phantom) ->
         end = ->
             @emit events.FINISH
             clearInterval @_interval
+
+            if typeof @_onFinish is 'function'
+                @_onFinish()
+
             if @_closeWhenFinished and connection.supportsAutoClose
                 @_phantom.exit()
 
@@ -383,6 +424,7 @@ binder = (phantom) ->
             @_interval = null
             @_phantom = null
             @_page = null
+            @_onFinish = null
             @_timeout = 3000
             @_bindConsole = false
             @_debug = false
@@ -466,7 +508,9 @@ binder = (phantom) ->
         execute: (url) ->
             @url url   # Set the URL if it was provided
 
-            connection.open (ph) =>
+            connection.open (ph, doneWithConnection) =>
+                @_onFinish = doneWithConnection
+
                 @_phantom = ph
                 @emit events.PHANTOM_CREATE
                 
@@ -520,18 +564,30 @@ binder = (phantom) ->
     exports =
         "Request": Request
         "Builder": Builder
-        "ConnectionStrategy":
+        "create": -> new Builder
+        "events": events
+        "recycle": (val) ->
+            if val then connection = new RecycledPhantomStrategy
+            else connection = new NewPhantomStrategy
+        
+        "ConnectionStrategy":    # Deprecated
             RoundRobin: RoundRobinPhantomStrategy
             New: NewPhantomStrategy
             NewPort: NewPortPhantomStrategy
             Recycled: RecycledPhantomStrategy
             Random: RandomPhantomStrategy
-        "events": events
-        "recycle": (val) ->
-            if val then connection = new RecycledPhantomStrategy
-            else connection = new NewPhantomStrategy
-        "create": -> new Builder
-        setConnectionStrategy: (strategy) -> 
+        setConnectionStrategy: (strategy) -> # Deprecated
+            if strategy instanceof PhantomStrategy
+                connection = strategy
+            else
+                throw Error "Invalid connection strategy"
+
+        "RoundRobin": RoundRobinPhantomStrategy
+        "RandomPool": RandomPhantomStrategy
+        "NewPhantom": NewPhantomStrategy
+        "NewPhantomAndPort": NewPortPhantomStrategy
+        "RecycledPhantom": RecycledPhantomStrategy
+        "connectWith": (strategy) ->
             if strategy instanceof PhantomStrategy
                 connection = strategy
             else
