@@ -6,6 +6,9 @@
 # We require EventEmitter to be inherited by Request
 Emitter = require('events').EventEmitter
 
+# Duration to make time outs friendlier
+Duration = require('duration-js')
+
 
 # A helper to provide the current time
 now = ->
@@ -227,8 +230,14 @@ binder = (phantom) ->
         until: (timeout) -> @for timeout
         timeout: (timeout) -> @for timeout
         for: (timeout) ->
-            if typeof timeout isnt 'number' then throw Error "Expected timeout to be a number"
-            @_props.timeout.duration = timeout
+            if typeof timeout is 'number'
+                @_props.timeout.duration = timeout
+            else if typeof timeout is 'string'
+                @_props.timeout.duration = Duration.parse(timeout).milliseconds()
+            else if typeof timeout is 'object' and timeout instanceof Duration
+                @_props.timeout.duration = Duration.milliseconds()
+            else
+                throw Error "Expected timeout to be a number"
             @
 
         # Never timeout

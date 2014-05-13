@@ -37,6 +37,7 @@
   },
   "dependencies": {
     "coffee-script": "~1.7.1",
+    "duration-js": "^3.3.3",
     "phantom": "~0.5.7"
   }
 }

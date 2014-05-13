@@ -220,7 +220,7 @@ Set a callback to be invoked when the request times out while waiting for conten
 #### Builder.timeout(milliseconds: number) <a name="timeout" />
 Synonyms: `for()`, `until()`
 
-Set the duration to wait before timing out.
+Set the duration to wait before timing out. Argument should be a number of milliseconds as an integer, a string that can be parsed by Duration (e.g. "5s"), or a Duration object.
 
 #### Builder.forever() <a name="forever" />
 Allow a request to wait forever for content.
