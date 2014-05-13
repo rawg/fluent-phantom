@@ -22,6 +22,8 @@
 
       PhantomStrategy.prototype.open = function(callback) {};
 
+      PhantomStrategy.prototype.exit = function() {};
+
       return PhantomStrategy;
 
     })();
@@ -32,12 +34,23 @@
         return NewPhantomStrategy.__super__.constructor.apply(this, arguments);
       }
 
+      NewPhantomStrategy.prototype.phantom = null;
+
       NewPhantomStrategy.prototype.supportsAutoClose = true;
 
       NewPhantomStrategy.prototype.open = function(callback) {
         return phantom.create({
           port: this.port
-        }, callback);
+        }, (function(_this) {
+          return function(ph) {
+            _this.phantom = ph;
+            return callback(ph);
+          };
+        })(this));
+      };
+
+      NewPhantomStrategy.prototype.exit = function() {
+        return this.phantom.exit();
       };
 
       return NewPhantomStrategy;
@@ -50,12 +63,23 @@
         return NewPortPhantomStrategy.__super__.constructor.apply(this, arguments);
       }
 
+      NewPortPhantomStrategy.prototype.phantom = null;
+
       NewPortPhantomStrategy.prototype.supportsAutoClose = true;
 
       NewPortPhantomStrategy.prototype.open = function(callback) {
         return phantom.create({
           port: this.port++
-        }, callback);
+        }, (function(_this) {
+          return function(ph) {
+            _this.phantom = ph;
+            return callback(ph);
+          };
+        })(this));
+      };
+
+      NewPortPhantomStrategy.prototype.exit = function() {
+        return this.phantom.exit();
       };
 
       return NewPortPhantomStrategy;
@@ -81,6 +105,10 @@
         } else {
           return callback(this.phantom);
         }
+      };
+
+      RecycledPhantomStrategy.prototype.exit = function() {
+        return this.phantom.exit();
       };
 
       return RecycledPhantomStrategy;
@@ -170,6 +198,19 @@
         this.timer[index] = null;
         this.busy[index] = false;
         return this.ready(index);
+      };
+
+      PooledPhantomStrategy.prototype.exit = function() {
+        var idx, _i, _ref, _results;
+        _results = [];
+        for (idx = _i = 0, _ref = this.size; 0 <= _ref ? _i < _ref : _i > _ref; idx = 0 <= _ref ? ++_i : --_i) {
+          if (typeof this.pool[idx] === 'object') {
+            _results.push(this.pool[idx].exit());
+          } else {
+            _results.push(void 0);
+          }
+        }
+        return _results;
       };
 
       PooledPhantomStrategy.prototype.exec = function(index, callback) {
@@ -684,18 +725,18 @@
           this._debug = isOn;
           _fn = function(event) {
             var callback;
-            return callback = function() {
+            callback = function() {
               return console.log('DEBUG: ' + event);
             };
+            if (this._debug) {
+              return this.addListener(event, callback);
+            } else {
+              return this.removeListener(event, callback);
+            }
           };
           for (key in events) {
             event = events[key];
             _fn(event);
-            if (this._debug) {
-              this.addListener(event, callback);
-            } else {
-              this.removeListener(event, callback);
-            }
           }
           return this;
         } else {
@@ -806,6 +847,9 @@
       "NewPhantom": NewPhantomStrategy,
       "NewPhantomAndPort": NewPortPhantomStrategy,
       "RecycledPhantom": RecycledPhantomStrategy,
+      "connections": function() {
+        return connection;
+      },
       "connectWith": function(strategy) {
         if (strategy instanceof PhantomStrategy) {
           return connection = strategy;

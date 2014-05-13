@@ -123,16 +123,28 @@ mock for unit testing.</p>
         <span class="hljs-attribute">port</span>: <span class="hljs-number">12340</span>
         <span class="hljs-attribute">supportsAutoClose</span>: <span class="hljs-literal">false</span>
         <span class="hljs-attribute">open</span>: <span class="hljs-function"><span class="hljs-params">(callback)</span> -&gt;</span>  <span class="hljs-comment"># phantom.create((ph) -&gt; )</span>
+        <span class="hljs-attribute">exit</span>:<span class="hljs-function"> -&gt;</span>
 
     <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">NewPhantomStrategy</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">PhantomStrategy</span></span>
+        <span class="hljs-attribute">phantom</span>: <span class="hljs-literal">null</span>
         <span class="hljs-attribute">supportsAutoClose</span>: <span class="hljs-literal">true</span>
         <span class="hljs-attribute">open</span>: <span class="hljs-function"><span class="hljs-params">(callback)</span> -&gt;</span>
-            phantom.create {<span class="hljs-attribute">port</span>: <span class="hljs-property">@port</span>}, callback
+            phantom.create {<span class="hljs-attribute">port</span>: <span class="hljs-property">@port</span>}, <span class="hljs-function"><span class="hljs-params">(ph)</span> =&gt;</span>
+                <span class="hljs-property">@phantom</span> = ph
+                callback ph
+        <span class="hljs-attribute">exit</span>:<span class="hljs-function"> -&gt;</span>
+            <span class="hljs-property">@phantom</span>.exit()
+
 
     <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">NewPortPhantomStrategy</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">PhantomStrategy</span></span>
+        <span class="hljs-attribute">phantom</span>: <span class="hljs-literal">null</span>
         <span class="hljs-attribute">supportsAutoClose</span>: <span class="hljs-literal">true</span>
         <span class="hljs-attribute">open</span>: <span class="hljs-function"><span class="hljs-params">(callback)</span> -&gt;</span>
-            phantom.create {<span class="hljs-attribute">port</span>: <span class="hljs-property">@port</span>++}, callback
+            phantom.create {<span class="hljs-attribute">port</span>: <span class="hljs-property">@port</span>++}, <span class="hljs-function"><span class="hljs-params">(ph)</span> =&gt;</span>
+                <span class="hljs-property">@phantom</span> = ph
+                callback ph
+        <span class="hljs-attribute">exit</span>:<span class="hljs-function"> -&gt;</span>
+            <span class="hljs-property">@phantom</span>.exit()
     
     <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">RecycledPhantomStrategy</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">PhantomStrategy</span></span>
         <span class="hljs-attribute">phantom</span>: <span class="hljs-literal">null</span>
@@ -143,6 +155,9 @@ mock for unit testing.</p>
                     callback ph
             <span class="hljs-keyword">else</span>
                 callback <span class="hljs-property">@phantom</span>
+
+        <span class="hljs-attribute">exit</span>:<span class="hljs-function"> -&gt;</span>
+            <span class="hljs-property">@phantom</span>.exit()
 
     <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">PooledPhantomStrategy</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">PhantomStrategy</span></span>
         <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@size</span> = <span class="hljs-number">4</span>, <span class="hljs-property">@queueDepth</span> = <span class="hljs-number">4</span>)</span> -&gt;</span>
@@ -191,6 +206,11 @@ mock for unit testing.</p>
             <span class="hljs-property">@timer</span>[index] = <span class="hljs-literal">null</span>
             <span class="hljs-property">@busy</span>[index] = <span class="hljs-literal">false</span>
             <span class="hljs-property">@ready</span>(index)
+
+        <span class="hljs-attribute">exit</span>:<span class="hljs-function"> -&gt;</span>
+            <span class="hljs-keyword">for</span> idx <span class="hljs-keyword">in</span> [<span class="hljs-number">0.</span>..<span class="hljs-property">@size</span>]
+                <span class="hljs-keyword">if</span> <span class="hljs-keyword">typeof</span> <span class="hljs-property">@pool</span>[idx] <span class="hljs-keyword">is</span> <span class="hljs-string">'object'</span>
+                    <span class="hljs-property">@pool</span>[idx].exit()
 
         <span class="hljs-attribute">exec</span>: <span class="hljs-function"><span class="hljs-params">(index, callback)</span> -&gt;</span>
             <span class="hljs-keyword">if</span> <span class="hljs-property">@busy</span>[index]
@@ -928,10 +948,10 @@ in the context of the page with access to <code>window</code> and <code>document
                     <span class="hljs-keyword">do</span> <span class="hljs-function"><span class="hljs-params">(event)</span> -&gt;</span>
                         <span class="hljs-function"><span class="hljs-title">callback</span> = -&gt;</span> <span class="hljs-built_in">console</span>.log <span class="hljs-string">'DEBUG: '</span> + event
 
-                    <span class="hljs-keyword">if</span> <span class="hljs-property">@_debug</span>
-                        <span class="hljs-property">@addListener</span> event, callback
-                    <span class="hljs-keyword">else</span>
-                        <span class="hljs-property">@removeListener</span> event, callback
+                        <span class="hljs-keyword">if</span> <span class="hljs-property">@_debug</span>
+                            <span class="hljs-property">@addListener</span> event, callback
+                        <span class="hljs-keyword">else</span>
+                            <span class="hljs-property">@removeListener</span> event, callback
                 @
 
             <span class="hljs-keyword">else</span>
@@ -1129,6 +1149,7 @@ have been satisfied or we run out of time.</p>
         <span class="hljs-string">"NewPhantom"</span>: NewPhantomStrategy
         <span class="hljs-string">"NewPhantomAndPort"</span>: NewPortPhantomStrategy
         <span class="hljs-string">"RecycledPhantom"</span>: RecycledPhantomStrategy
+        <span class="hljs-string">"connections"</span>:<span class="hljs-function"> -&gt;</span> connection
         <span class="hljs-string">"connectWith"</span>: <span class="hljs-function"><span class="hljs-params">(strategy)</span> -&gt;</span>
             <span class="hljs-keyword">if</span> strategy <span class="hljs-keyword">instanceof</span> PhantomStrategy
                 connection = strategy

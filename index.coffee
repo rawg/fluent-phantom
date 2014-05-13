@@ -23,16 +23,28 @@ binder = (phantom) ->
         port: 12340
         supportsAutoClose: false
         open: (callback) ->  # phantom.create((ph) -> )
+        exit: ->
 
     class NewPhantomStrategy extends PhantomStrategy
+        phantom: null
         supportsAutoClose: true
         open: (callback) ->
-            phantom.create {port: @port}, callback
+            phantom.create {port: @port}, (ph) =>
+                @phantom = ph
+                callback ph
+        exit: ->
+            @phantom.exit()
+
 
     class NewPortPhantomStrategy extends PhantomStrategy
+        phantom: null
         supportsAutoClose: true
         open: (callback) ->
-            phantom.create {port: @port++}, callback
+            phantom.create {port: @port++}, (ph) =>
+                @phantom = ph
+                callback ph
+        exit: ->
+            @phantom.exit()
     
     class RecycledPhantomStrategy extends PhantomStrategy
         phantom: null
@@ -43,6 +55,9 @@ binder = (phantom) ->
                     callback ph
             else
                 callback @phantom
+
+        exit: ->
+            @phantom.exit()
 
     class PooledPhantomStrategy extends PhantomStrategy
         constructor: (@size = 4, @queueDepth = 4) ->
@@ -91,6 +106,11 @@ binder = (phantom) ->
             @timer[index] = null
             @busy[index] = false
             @ready(index)
+
+        exit: ->
+            for idx in [0...@size]
+                if typeof @pool[idx] is 'object'
+                    @pool[idx].exit()
 
         exec: (index, callback) ->
             if @busy[index]
@@ -482,10 +502,10 @@ binder = (phantom) ->
                     do (event) ->
                         callback = -> console.log 'DEBUG: ' + event
 
-                    if @_debug
-                        @addListener event, callback
-                    else
-                        @removeListener event, callback
+                        if @_debug
+                            @addListener event, callback
+                        else
+                            @removeListener event, callback
                 @
 
             else
@@ -587,6 +607,7 @@ binder = (phantom) ->
         "NewPhantom": NewPhantomStrategy
         "NewPhantomAndPort": NewPortPhantomStrategy
         "RecycledPhantom": RecycledPhantomStrategy
+        "connections": -> connection
         "connectWith": (strategy) ->
             if strategy instanceof PhantomStrategy
                 connection = strategy
