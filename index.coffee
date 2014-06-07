@@ -417,7 +417,7 @@ binder = (phantom) ->
                         withPageContext = (args...) ->
                             args.push pg
                             handler.apply(@, args)
-                        page.evaluate extractor, handler, args
+                        page.evaluate extractor, withPageContext, args
                     
 
             req
