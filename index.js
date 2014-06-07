@@ -1,10 +1,12 @@
 (function() {
-  var Emitter, binder, now,
+  var Duration, Emitter, binder, now,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     __slice = [].slice;
 
   Emitter = require('events').EventEmitter;
+
+  Duration = require('duration-js');
 
   now = function() {
     return (new Date).getTime();
@@ -358,10 +360,15 @@
       };
 
       Builder.prototype["for"] = function(timeout) {
-        if (typeof timeout !== 'number') {
+        if (typeof timeout === 'number') {
+          this._props.timeout.duration = timeout;
+        } else if (typeof timeout === 'string') {
+          this._props.timeout.duration = Duration.parse(timeout).milliseconds();
+        } else if (typeof timeout === 'object' && timeout instanceof Duration) {
+          this._props.timeout.duration = Duration.milliseconds();
+        } else {
           throw Error("Expected timeout to be a number");
         }
-        this._props.timeout.duration = timeout;
         return this;
       };
 
@@ -615,7 +622,7 @@
                 args.push(pg);
                 return handler.apply(this, args);
               };
-              return page.evaluate(extractor, handler, args);
+              return page.evaluate(extractor, withPageContext, args);
             });
         }
         return req;

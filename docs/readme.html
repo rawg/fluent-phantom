@@ -282,7 +282,7 @@ builder.when(callback, argument)</code></pre>
 <p>Set a callback to be invoked when the request times out while waiting for content to become available. The callback will receive no arguments.</p>
 <h4 id="builder-timeout-milliseconds-number-a-name-timeout-">Builder.timeout(milliseconds: number) <a name="timeout" /></h4>
 <p>Synonyms: <code>for()</code>, <code>until()</code></p>
-<p>Set the duration to wait before timing out.</p>
+<p>Set the duration to wait before timing out. Argument should be a number of milliseconds as an integer, a string that can be parsed by Duration (e.g. &quot;5s&quot;), or a Duration object.</p>
 <h4 id="builder-forever-a-name-forever-">Builder.forever() <a name="forever" /></h4>
 <p>Allow a request to wait forever for content.</p>
 <h4 id="builder-immediately-a-name-immediately-">Builder.immediately() <a name="immediately" /></h4>
