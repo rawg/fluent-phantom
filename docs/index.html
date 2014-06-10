@@ -1032,14 +1032,30 @@ in the context of the page with access to <code>window</code> and <code>document
             <span class="hljs-property">@url</span> url   <span class="hljs-comment"># Set the URL if it was provided</span>
 
             connection.open <span class="hljs-function"><span class="hljs-params">(ph, doneWithConnection)</span> =&gt;</span>
-                <span class="hljs-property">@_onFinish</span> = doneWithConnection
+                <span class="hljs-property">@_onFinish</span> = doneWithConnection</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-41">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-41">&#182;</a>
+              </div>
+              <p>ph.set(‘onError’, =&gt; @emit events.REQUEST_FAILURE)</p>
 
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
                 <span class="hljs-property">@_phantom</span> = ph
                 <span class="hljs-property">@emit</span> events.PHANTOM_CREATE
                 
                 ph.createPage <span class="hljs-function"><span class="hljs-params">(page)</span> =&gt;</span>
                     <span class="hljs-property">@_page</span> = page
                     page.set<span class="hljs-function"><span class="hljs-params">(<span class="hljs-string">'onConsoleMessage'</span>, (msg) =&gt; <span class="hljs-property">@emit</span> events.CONSOLE, msg)</span>
+                    <span class="hljs-title">page</span>.<span class="hljs-title">set</span><span class="hljs-params">(<span class="hljs-string">'onError'</span>, =&gt; <span class="hljs-property">@emit</span> events.REQUEST_FAILURE)</span>
+
                     @<span class="hljs-title">emit</span> <span class="hljs-title">events</span>.<span class="hljs-title">PAGE_CREATE</span>
 
                     <span class="hljs-title">page</span>.<span class="hljs-title">open</span> @<span class="hljs-title">_url</span>, <span class="hljs-params">(status)</span> =&gt;</span>
@@ -1053,11 +1069,11 @@ in the context of the page with access to <code>window</code> and <code>document
         </li>
         
         
-        <li id="section-41">
+        <li id="section-42">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-41">&#182;</a>
+                <a class="pilcrow" href="#section-42">&#182;</a>
               </div>
               <p>This function is called over and over until all conditions 
 have been satisfied or we run out of time.</p>
@@ -1070,11 +1086,11 @@ have been satisfied or we run out of time.</p>
         </li>
         
         
-        <li id="section-42">
+        <li id="section-43">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-42">&#182;</a>
+                <a class="pilcrow" href="#section-43">&#182;</a>
               </div>
               <p>Timeout</p>
 
@@ -1087,11 +1103,11 @@ have been satisfied or we run out of time.</p>
         </li>
         
         
-        <li id="section-43">
+        <li id="section-44">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-43">&#182;</a>
+                <a class="pilcrow" href="#section-44">&#182;</a>
               </div>
               <p>Check sentry and perform action if ready</p>
 
@@ -1119,11 +1135,11 @@ have been satisfied or we run out of time.</p>
         </li>
         
         
-        <li id="section-44">
+        <li id="section-45">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-44">&#182;</a>
+                <a class="pilcrow" href="#section-45">&#182;</a>
               </div>
               <p>Ensure that Request can emit events</p>
 
@@ -1134,11 +1150,11 @@ have been satisfied or we run out of time.</p>
         </li>
         
         
-        <li id="section-45">
+        <li id="section-46">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-45">&#182;</a>
+                <a class="pilcrow" href="#section-46">&#182;</a>
               </div>
               <p>Export bound classes</p>
 

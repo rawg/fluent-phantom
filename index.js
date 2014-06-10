@@ -777,6 +777,9 @@
               page.set('onConsoleMessage', function(msg) {
                 return _this.emit(events.CONSOLE, msg);
               });
+              page.set('onError', function() {
+                return _this.emit(events.REQUEST_FAILURE);
+              });
               _this.emit(events.PAGE_CREATE);
               return page.open(_this._url, function(status) {
                 var start, tick;
