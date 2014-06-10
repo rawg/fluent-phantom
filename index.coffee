@@ -540,12 +540,16 @@ binder = (phantom) ->
             connection.open (ph, doneWithConnection) =>
                 @_onFinish = doneWithConnection
 
+                #ph.set('onError', => @emit events.REQUEST_FAILURE)
+
                 @_phantom = ph
                 @emit events.PHANTOM_CREATE
                 
                 ph.createPage (page) =>
                     @_page = page
                     page.set('onConsoleMessage', (msg) => @emit events.CONSOLE, msg)
+                    page.set('onError', => @emit events.REQUEST_FAILURE)
+
                     @emit events.PAGE_CREATE
 
                     page.open @_url, (status) =>
