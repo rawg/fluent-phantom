@@ -214,11 +214,12 @@ builder = phantom.create()</code></pre>
     .until(5000) # Timeout after 5 seconds
     .otherwise(-&gt; console.error &quot;The selector was never satisfied; handle errors here&quot;)
     .execute()</code></pre>
-<h4 id="builder-select-selector-string-minimum-number-a-name-select-css-">Builder.select(selector: string, [minimum: number]) <a name="select-css" /></h4>
+<h4 id="builder-select-selector-string-array-object-minimum-number-a-name-select-css-">Builder.select(selector: string|array|object, [minimum: number]) <a name="select-css" /></h4>
 <p>Synonyms: <code>extract()</code></p>
 <p>See also: <a href="#when-css"><code>when()</code></a>, <a href="#properties"><code>properties()</code></a>, <a href="#handle"><code>handle()</code></a></p>
 <p>When <code>select</code> is invoked with a string, it is assumed to be a CSS selector describing elements to be scraped. When used in this way, <code>select</code> will immediately invoke <a href="#when-css"><code>when</code></a> to automatically wait for the selector to be satisfied. If a number is passed as the second argument, it is treated as a minimum number of elements that must be satisfied and passed to <code>when</code>.</p>
 <p>Note that WebKit&#39;s <code>document.querySelectorAll()</code> is used to interpret selectors.</p>
+<p>If an array or map of strings is provided, it is assumed that multiple selections are desired, and an array or map of the corresponding results will be returned. Index ordering of arrays will be preserved.</p>
 <h4 id="builder-handle-callback-function-a-name-handle-">Builder.handle(callback: function) <a name="handle" /></h4>
 <p>Synonyms: <code>process()</code>, <code>receive()</code></p>
 <p>Specify a callback function to process results. Because scraping performed by <code>select</code> happens inside the PhantomJS VM, the results must be serialized to JSON and processed by a function in the Node.js VM where this module is being used. This is where you would publish results to a message queue or persist them to a data store.</p>

@@ -111,7 +111,7 @@ phantom.create()
 	.execute()
 ```
 
-#### Builder.select(selector: string, [minimum: number]) <a name="select-css" />
+#### Builder.select(selector: string|array|object, [minimum: number]) <a name="select-css" />
 Synonyms: `extract()`
 
 See also: [`when()`](#when-css), [`properties()`](#properties), [`handle()`](#handle)
@@ -119,6 +119,8 @@ See also: [`when()`](#when-css), [`properties()`](#properties), [`handle()`](#ha
 When `select` is invoked with a string, it is assumed to be a CSS selector describing elements to be scraped. When used in this way, `select` will immediately invoke [`when`](#when-css) to automatically wait for the selector to be satisfied. If a number is passed as the second argument, it is treated as a minimum number of elements that must be satisfied and passed to `when`.
 
 Note that WebKit's `document.querySelectorAll()` is used to interpret selectors.
+
+If an array or map of strings is provided, it is assumed that multiple selections are desired, and an array or map of the corresponding results will be returned. Index ordering of arrays will be preserved.
 
 #### Builder.handle(callback: function) <a name="handle" />
 Synonyms: `process()`, `receive()`

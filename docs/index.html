@@ -520,15 +520,22 @@ mock for unit testing.</p>
             </div>
             
             <div class="content"><div class='highlight'><pre>        <span class="hljs-attribute">when</span>: <span class="hljs-function"><span class="hljs-params">(condition, argument)</span> -&gt;</span>
-            <span class="hljs-keyword">if</span> <span class="hljs-keyword">typeof</span> condition <span class="hljs-keyword">is</span> <span class="hljs-string">'string'</span>
+            <span class="hljs-keyword">if</span> <span class="hljs-keyword">typeof</span> condition <span class="hljs-keyword">is</span> <span class="hljs-string">'string'</span> <span class="hljs-keyword">then</span> condition = [condition]
+
+            <span class="hljs-keyword">if</span> <span class="hljs-keyword">typeof</span> condition <span class="hljs-keyword">is</span> <span class="hljs-string">'object'</span>
                 <span class="hljs-property">@_build</span>.<span class="hljs-keyword">when</span> = builders.<span class="hljs-keyword">when</span>.css
 
                 minimum = <span class="hljs-keyword">if</span> <span class="hljs-keyword">typeof</span> argument <span class="hljs-keyword">is</span> <span class="hljs-string">'number'</span> <span class="hljs-keyword">then</span> argument <span class="hljs-keyword">else</span> <span class="hljs-number">1</span>
                 <span class="hljs-property">@_props</span>.condition = 
-                    <span class="hljs-attribute">callback</span>: <span class="hljs-function"><span class="hljs-params">(args)</span> -&gt;</span> <span class="hljs-built_in">document</span>.querySelectorAll(args.query).length &gt;= args.minimum
+                    <span class="hljs-attribute">callback</span>: <span class="hljs-function"><span class="hljs-params">(args)</span> -&gt;</span>
+                        result = <span class="hljs-literal">true</span>
+                        <span class="hljs-keyword">for</span> k, query <span class="hljs-keyword">of</span> args.queries
+                            <span class="hljs-keyword">if</span> (<span class="hljs-built_in">document</span>.querySelectorAll(query).length &lt; args.minimum) <span class="hljs-keyword">then</span> result = <span class="hljs-literal">false</span>
+                        result
+
                     <span class="hljs-attribute">argument</span>:
                         <span class="hljs-attribute">minimum</span>: minimum
-                        <span class="hljs-attribute">query</span>: condition
+                        <span class="hljs-attribute">queries</span>: condition
 
             <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> <span class="hljs-keyword">typeof</span> condition <span class="hljs-keyword">is</span> <span class="hljs-string">'function'</span>
                 <span class="hljs-property">@_build</span>.<span class="hljs-keyword">when</span> = builders.<span class="hljs-keyword">when</span>.<span class="hljs-reserved">function</span>
@@ -560,8 +567,9 @@ in the context of the page with access to <code>window</code> and <code>document
             
             <div class="content"><div class='highlight'><pre>        <span class="hljs-attribute">extract</span>: <span class="hljs-function"><span class="hljs-params">(selector, argument)</span> -&gt;</span> <span class="hljs-property">@select</span>(selector, argument)
         <span class="hljs-attribute">select</span>: <span class="hljs-function"><span class="hljs-params">(selector, argument)</span> -&gt;</span>
-            <span class="hljs-keyword">if</span> <span class="hljs-keyword">typeof</span> selector <span class="hljs-keyword">is</span> <span class="hljs-string">'string'</span>
+            <span class="hljs-keyword">if</span> <span class="hljs-keyword">typeof</span> selector <span class="hljs-keyword">is</span> <span class="hljs-string">'string'</span> <span class="hljs-keyword">or</span> <span class="hljs-keyword">typeof</span> selector <span class="hljs-keyword">is</span> <span class="hljs-string">'object'</span>
                 <span class="hljs-property">@_build</span>.action = builders.action.css
+                <span class="hljs-keyword">if</span> <span class="hljs-keyword">typeof</span> selector <span class="hljs-keyword">is</span> <span class="hljs-string">'string'</span> <span class="hljs-keyword">then</span> selector = [selector]
                 <span class="hljs-property">@_props</span>.scraper.query = selector
                 <span class="hljs-property">@when</span> selector, argument
 
@@ -746,6 +754,8 @@ in the context of the page with access to <code>window</code> and <code>document
                     handler = <span class="hljs-property">@_props</span>.scraper.handler
 
                     <span class="hljs-function"><span class="hljs-title">extractor</span> = <span class="hljs-params">(args)</span> -&gt;</span>
+                        result = <span class="hljs-literal">null</span>
+
                         <span class="hljs-function"><span class="hljs-title">filter</span> = <span class="hljs-params">(elems)</span> -&gt;</span>
                             results = []
                             <span class="hljs-keyword">for</span> elem <span class="hljs-keyword">in</span> elems <span class="hljs-keyword">when</span> elem.id?
@@ -759,14 +769,23 @@ in the context of the page with access to <code>window</code> and <code>document
                                 results.push obj
 
                             results
+                        
+                        <span class="hljs-keyword">if</span> (args.query.length <span class="hljs-keyword">is</span> <span class="hljs-number">1</span>)
+                            filter <span class="hljs-built_in">document</span>.querySelectorAll(args.query[<span class="hljs-number">0</span>])
+                        <span class="hljs-keyword">else</span>
+                            results = <span class="hljs-keyword">if</span> args.query <span class="hljs-keyword">instanceof</span> Array <span class="hljs-keyword">then</span> [] <span class="hljs-keyword">else</span> {}
 
-                        filter <span class="hljs-built_in">document</span>.querySelectorAll(args.query)
-                    
-                    req.action <span class="hljs-function"><span class="hljs-params">(page)</span> -&gt;</span> 
+                            <span class="hljs-keyword">for</span> key, query <span class="hljs-keyword">of</span> args.query
+                                results[key] = filter <span class="hljs-built_in">document</span>.querySelectorAll(query)
+
+                            results
+
+                    req.action <span class="hljs-function"><span class="hljs-params">(page)</span> -&gt;</span>
                         pg = page
                         <span class="hljs-function"><span class="hljs-title">withPageContext</span> = <span class="hljs-params">(args...)</span> -&gt;</span>
                             args.push pg
                             handler.apply(@, args)
+
                         page.evaluate extractor, withPageContext, args
                     
 
@@ -971,12 +990,7 @@ in the context of the page with access to <code>window</code> and <code>document
 
                         <span class="hljs-keyword">if</span> <span class="hljs-property">@_debug</span>
                             <span class="hljs-property">@addListener</span> event, callback
-                        <span class="hljs-keyword">else</span>
-                            <span class="hljs-property">@removeListener</span> event, callback
-                @
-
-            <span class="hljs-keyword">else</span>
-                <span class="hljs-property">@_debug</span></pre></div></div>
+                        <span class="hljs-keyword">else</span></pre></div></div>
             
         </li>
         
@@ -986,6 +1000,24 @@ in the context of the page with access to <code>window</code> and <code>document
               
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-38">&#182;</a>
+              </div>
+              <p>@removeListener event, callback</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>                @
+
+            <span class="hljs-keyword">else</span>
+                <span class="hljs-property">@_debug</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-39">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-39">&#182;</a>
               </div>
               <p>Set or get the URL</p>
 
@@ -1001,11 +1033,11 @@ in the context of the page with access to <code>window</code> and <code>document
         </li>
         
         
-        <li id="section-39">
+        <li id="section-40">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-39">&#182;</a>
+                <a class="pilcrow" href="#section-40">&#182;</a>
               </div>
               <p>Interrupt execution and end ASAP</p>
 
@@ -1018,11 +1050,11 @@ in the context of the page with access to <code>window</code> and <code>document
         </li>
         
         
-        <li id="section-40">
+        <li id="section-41">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-40">&#182;</a>
+                <a class="pilcrow" href="#section-41">&#182;</a>
               </div>
               <p>Execute the request</p>
 
@@ -1037,11 +1069,11 @@ in the context of the page with access to <code>window</code> and <code>document
         </li>
         
         
-        <li id="section-41">
+        <li id="section-42">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-41">&#182;</a>
+                <a class="pilcrow" href="#section-42">&#182;</a>
               </div>
               <p>ph.set(‘onError’, =&gt; @emit events.REQUEST_FAILURE)</p>
 
@@ -1057,11 +1089,9 @@ in the context of the page with access to <code>window</code> and <code>document
                     <span class="hljs-title">page</span>.<span class="hljs-title">set</span><span class="hljs-params">(<span class="hljs-string">'onError'</span>, =&gt; <span class="hljs-property">@emit</span> events.REQUEST_FAILURE)</span>
 
                     @<span class="hljs-title">emit</span> <span class="hljs-title">events</span>.<span class="hljs-title">PAGE_CREATE</span>
-
                     <span class="hljs-title">page</span>.<span class="hljs-title">open</span> @<span class="hljs-title">_url</span>, <span class="hljs-params">(status)</span> =&gt;</span>
                         <span class="hljs-keyword">if</span> (status != <span class="hljs-string">'success'</span>)        <span class="hljs-comment"># Request failed</span>
                             <span class="hljs-property">@emit</span> events.REQUEST_FAILURE
-                            end.call <span class="hljs-keyword">this</span>
 
                         <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@_condition</span> <span class="hljs-keyword">isnt</span> <span class="hljs-literal">null</span>    <span class="hljs-comment"># Request succeeded, but we have to verify the DOM</span>
                             start = now()</pre></div></div>
@@ -1069,11 +1099,11 @@ in the context of the page with access to <code>window</code> and <code>document
         </li>
         
         
-        <li id="section-42">
+        <li id="section-43">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-42">&#182;</a>
+                <a class="pilcrow" href="#section-43">&#182;</a>
               </div>
               <p>This function is called over and over until all conditions 
 have been satisfied or we run out of time.</p>
@@ -1086,11 +1116,11 @@ have been satisfied or we run out of time.</p>
         </li>
         
         
-        <li id="section-43">
+        <li id="section-44">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-43">&#182;</a>
+                <a class="pilcrow" href="#section-44">&#182;</a>
               </div>
               <p>Timeout</p>
 
@@ -1103,11 +1133,11 @@ have been satisfied or we run out of time.</p>
         </li>
         
         
-        <li id="section-44">
+        <li id="section-45">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-44">&#182;</a>
+                <a class="pilcrow" href="#section-45">&#182;</a>
               </div>
               <p>Check sentry and perform action if ready</p>
 
@@ -1135,11 +1165,11 @@ have been satisfied or we run out of time.</p>
         </li>
         
         
-        <li id="section-45">
+        <li id="section-46">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-45">&#182;</a>
+                <a class="pilcrow" href="#section-46">&#182;</a>
               </div>
               <p>Ensure that Request can emit events</p>
 
@@ -1150,11 +1180,11 @@ have been satisfied or we run out of time.</p>
         </li>
         
         
-        <li id="section-46">
+        <li id="section-47">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-46">&#182;</a>
+                <a class="pilcrow" href="#section-47">&#182;</a>
               </div>
               <p>Export bound classes</p>
 

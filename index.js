@@ -430,15 +430,27 @@
       Builder.prototype.when = function(condition, argument) {
         var minimum;
         if (typeof condition === 'string') {
+          condition = [condition];
+        }
+        if (typeof condition === 'object') {
           this._build.when = builders.when.css;
           minimum = typeof argument === 'number' ? argument : 1;
           this._props.condition = {
             callback: function(args) {
-              return document.querySelectorAll(args.query).length >= args.minimum;
+              var k, query, result, _ref;
+              result = true;
+              _ref = args.queries;
+              for (k in _ref) {
+                query = _ref[k];
+                if (document.querySelectorAll(query).length < args.minimum) {
+                  result = false;
+                }
+              }
+              return result;
             },
             argument: {
               minimum: minimum,
-              query: condition
+              queries: condition
             }
           };
         } else if (typeof condition === 'function') {
@@ -460,8 +472,11 @@
       };
 
       Builder.prototype.select = function(selector, argument) {
-        if (typeof selector === 'string') {
+        if (typeof selector === 'string' || typeof selector === 'object') {
           this._build.action = builders.action.css;
+          if (typeof selector === 'string') {
+            selector = [selector];
+          }
           this._props.scraper.query = selector;
           this.when(selector, argument);
         } else if (typeof selector === 'function') {
@@ -588,7 +603,8 @@
             };
             handler = this._props.scraper.handler;
             extractor = function(args) {
-              var filter;
+              var filter, key, query, result, results, _ref;
+              result = null;
               filter = function(elems) {
                 var elem, key, obj, results, _i, _j, _len, _len1, _ref;
                 results = [];
@@ -611,7 +627,17 @@
                 }
                 return results;
               };
-              return filter(document.querySelectorAll(args.query));
+              if (args.query.length === 1) {
+                return filter(document.querySelectorAll(args.query[0]));
+              } else {
+                results = args.query instanceof Array ? [] : {};
+                _ref = args.query;
+                for (key in _ref) {
+                  query = _ref[key];
+                  results[key] = filter(document.querySelectorAll(query));
+                }
+                return results;
+              }
             };
             req.action(function(page) {
               var pg, withPageContext;
@@ -738,7 +764,7 @@
             if (this._debug) {
               return this.addListener(event, callback);
             } else {
-              return this.removeListener(event, callback);
+
             }
           };
           for (key in events) {
@@ -784,8 +810,7 @@
               return page.open(_this._url, function(status) {
                 var start, tick;
                 if (status !== 'success') {
-                  _this.emit(events.REQUEST_FAILURE);
-                  return end.call(_this);
+                  return _this.emit(events.REQUEST_FAILURE);
                 } else if (_this._condition !== null) {
                   start = now();
                   tick = function() {

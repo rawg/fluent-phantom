@@ -279,15 +279,22 @@ binder = (phantom) ->
 
         # Assign a condition that must be satisfied before scraping content
         when: (condition, argument) ->
-            if typeof condition is 'string'
+            if typeof condition is 'string' then condition = [condition]
+
+            if typeof condition is 'object'
                 @_build.when = builders.when.css
 
                 minimum = if typeof argument is 'number' then argument else 1
                 @_props.condition = 
-                    callback: (args) -> document.querySelectorAll(args.query).length >= args.minimum
+                    callback: (args) ->
+                        result = true
+                        for k, query of args.queries
+                            if (document.querySelectorAll(query).length < args.minimum) then result = false
+                        result
+
                     argument:
                         minimum: minimum
-                        query: condition
+                        queries: condition
 
             else if typeof condition is 'function'
                 @_build.when = builders.when.function
@@ -307,8 +314,9 @@ binder = (phantom) ->
         # in the context of the page with access to `window` and `document`.
         extract: (selector, argument) -> @select(selector, argument)
         select: (selector, argument) ->
-            if typeof selector is 'string'
+            if typeof selector is 'string' or typeof selector is 'object'
                 @_build.action = builders.action.css
+                if typeof selector is 'string' then selector = [selector]
                 @_props.scraper.query = selector
                 @when selector, argument
 
@@ -396,6 +404,8 @@ binder = (phantom) ->
                     handler = @_props.scraper.handler
 
                     extractor = (args) ->
+                        result = null
+
                         filter = (elems) ->
                             results = []
                             for elem in elems when elem.id?
@@ -409,14 +419,23 @@ binder = (phantom) ->
                                 results.push obj
 
                             results
+                        
+                        if (args.query.length is 1)
+                            filter document.querySelectorAll(args.query[0])
+                        else
+                            results = if args.query instanceof Array then [] else {}
 
-                        filter document.querySelectorAll(args.query)
-                    
-                    req.action (page) -> 
+                            for key, query of args.query
+                                results[key] = filter document.querySelectorAll(query)
+
+                            results
+
+                    req.action (page) ->
                         pg = page
                         withPageContext = (args...) ->
                             args.push pg
                             handler.apply(@, args)
+
                         page.evaluate extractor, withPageContext, args
                     
 
@@ -514,7 +533,7 @@ binder = (phantom) ->
                         if @_debug
                             @addListener event, callback
                         else
-                            @removeListener event, callback
+                            #@removeListener event, callback
                 @
 
             else
@@ -551,15 +570,13 @@ binder = (phantom) ->
                     page.set('onError', => @emit events.REQUEST_FAILURE)
 
                     @emit events.PAGE_CREATE
-
                     page.open @_url, (status) =>
                         if (status != 'success')        # Request failed
                             @emit events.REQUEST_FAILURE
-                            end.call this
 
                         else if @_condition isnt null    # Request succeeded, but we have to verify the DOM
                             start = now()
-
+                            
                             # This function is called over and over until all conditions 
                             # have been satisfied or we run out of time.
                             tick = =>

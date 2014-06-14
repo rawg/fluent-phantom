@@ -43,7 +43,7 @@ describe 'A live request', ->
         
         # Recycle a phantom object to avoid wastefulness but, more importantly,
         # prevent the port binding / EADDRINUSE error.
-        request.recycle true
+        request.setConnectionStrategy new request.NewPhantomAndPort
 
     afterEach ->
         #sleep 1  # Not needed when using a recycling connection strategy
@@ -133,6 +133,54 @@ describe 'A live request', ->
             .otherwise(fail(done))
             .execute()
 
+    it 'should accept an array of arguments passed to select()', (done) ->
+        rcv = (results) ->
+            results.length.should.equal 3
+            results[0].length.should.equal 1
+            first = results[0][0]
+            first.should.have.property 'innerText'
+            first.innerText.should.equal 'static'
+            done()
+
+        request.create()
+            .select(['#static h3', '#headlines li', '#trailing li'])
+            .with().properties('innerText')
+            .from(uri)
+            .and().then().process(rcv)
+            .timeout(5000)
+            .otherwise(fail(done))
+            .build()
+            .console(true)
+            .execute()
+        
+    it 'should accept a map of arguments passed to select()', (done) ->
+        rcv = (results) ->
+            results.should.have.property 'static'
+            results.should.have.property 'headlines'
+            results.should.have.property 'trailing'
+
+            results['static'].length.should.equal 1
+            first = results['static'][0]
+            first.should.have.property 'innerText'
+            first.innerText.should.equal 'static'
+
+            done()
+
+        request.create()
+            .select(
+                static: '#static h3'
+                headlines: '#headlines li'
+                trailing: '#trailing li'
+            )
+            .with().properties('innerText')
+            .from(uri)
+            .and().then().process(rcv)
+            .timeout(5000)
+            .otherwise(fail(done))
+            .build()
+            .console(true)
+            .execute()
+
     it 'should wait on a function to return true', (done) ->
         request.create()
             .from(uri)
@@ -153,3 +201,12 @@ describe 'A live request', ->
             .otherwise(fail(done))
             .execute()
 
+    it 'should wait on multiple CSS selectors to be satisfied', (done) ->
+        request.create()
+            .from(uri)
+            .when(['#static h3', '#headlines li', '#trailing li'])
+            .select(extractor, '#headlines li')
+            .and().then().process(handler(done))
+            .timeout(5000)
+            .otherwise(fail(done))
+            .execute()
