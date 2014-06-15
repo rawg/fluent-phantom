@@ -1,6 +1,6 @@
 {
   "name": "fluent-phantom",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "A fluent interface to easily scrape web content - including that generated dynamically - in Node with the PhantomJS headless browser.",
   "main": "index.js",
   "scripts": {

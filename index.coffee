@@ -559,7 +559,7 @@ binder = (phantom) ->
             connection.open (ph, doneWithConnection) =>
                 @_onFinish = doneWithConnection
 
-                #ph.set('onError', => @emit events.REQUEST_FAILURE)
+                ph.set('onError', => @emit events.REQUEST_FAILURE)
 
                 @_phantom = ph
                 @emit events.PHANTOM_CREATE
