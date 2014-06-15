@@ -54,6 +54,10 @@ binder = (phantom) ->
         open: (callback) ->
             if not @phantom?
                 phantom.create (ph) =>
+                    ph.set('onError', =>
+                        ph.exit(1)
+                        @phantom = null
+                    )
                     @phantom = ph
                     callback ph
             else
@@ -98,6 +102,11 @@ binder = (phantom) ->
                 phantom.create {port: @port + @created++}, (ph) =>
                     @pool[index] = ph
                     @busy[index] = false
+                    ph.set('onError', =>
+                        if typeof @pool[index] is 'object' and @pool[index]['exit']? then @pool[index].exit()
+                        console.error "A Phantom worker crashed. Removing from the pool."
+                        @pool[index] = null
+                    )
                     @ready(index)
 
         ready: (index) ->
@@ -116,7 +125,7 @@ binder = (phantom) ->
                     @pool[idx].exit()
 
         exec: (index, callback) ->
-            if @busy[index]
+            if @busy[index] or !@pool[index]?
                 if @queue[index].length < @queueDepth - 1
                     @queue[index].push callback
                 else
@@ -129,6 +138,8 @@ binder = (phantom) ->
                         throw new Error("Easy trigger, you're issuing too many requests. These things take time!")
                     else
                         @queue[pos].push callback
+
+                if (!@pool[index]) then @create index
 
             else
                 @busy[index] = true

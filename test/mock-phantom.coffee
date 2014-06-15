@@ -28,6 +28,9 @@ class MockPhantom
     exit: ->
         @emit 'exit'
 
+    set: (key, value) ->
+        # pass
+
 class MockPage
     open: (url, callback) ->
         if typeof callback != 'function' then throw Error "Invalid callback"
