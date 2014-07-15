@@ -24,6 +24,7 @@ binder = (phantom) ->
     # Connection strategies
     class PhantomStrategy
         port: 12340
+        phantomOpts: {}
         supportsAutoClose: false
         open: (callback) ->  # phantom.create((ph) -> )
         exit: ->
@@ -32,7 +33,8 @@ binder = (phantom) ->
         phantom: null
         supportsAutoClose: true
         open: (callback) ->
-            phantom.create {port: @port}, (ph) =>
+            @phantomOpts.port = @port
+            phantom.create @phantomOpts, (ph) =>
                 @phantom = ph
                 callback ph
         exit: ->
@@ -43,7 +45,9 @@ binder = (phantom) ->
         phantom: null
         supportsAutoClose: true
         open: (callback) ->
-            phantom.create {port: @port++}, (ph) =>
+            @phantomOpts.port = @port++
+
+            phantom.create @phantomOpts, (ph) =>
                 @phantom = ph
                 callback ph
         exit: ->
@@ -53,7 +57,7 @@ binder = (phantom) ->
         phantom: null
         open: (callback) ->
             if not @phantom?
-                phantom.create (ph) =>
+                phantom.create @phantomOpts, (ph) =>
                     ph.set('onError', =>
                         ph.exit(1)
                         @phantom = null
@@ -99,7 +103,8 @@ binder = (phantom) ->
         create: (index) ->
             if index < @size and typeof @pool[index] isnt 'object' and !@busy[index]
                 @busy[index] = true
-                phantom.create {port: @port + @created++}, (ph) =>
+                @phantomOpts.port = @port + @created++
+                phantom.create @phantomOpts, (ph) =>
                     @pool[index] = ph
                     @busy[index] = false
                     ph.set('onError', =>
