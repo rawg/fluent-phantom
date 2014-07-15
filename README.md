@@ -173,7 +173,7 @@ phantom.create()
 #### Builder.evaluate(extractor: function, handler: function, [argument: any]) <a name="evaluate" />
 See also: [`select(function)`](#select-function)
 
-Assign an extractor function and a handler in one method call. The result is the same as calling [`select(extractor, argument)`](#select-function) and [`handle(handler)`](#handler).
+Assign an extractor function and a handler in one method call. The result is the same as calling [`select(extractor, argument)`](#select-function) and [`handle(handler)`](#handle).
 
 This method is named evaluate because it wraps `page.evaluate` in the PhantomJS bridge.
 
@@ -189,7 +189,7 @@ The two forms of `when` cause any actions specified by [`handle`](#handle), [`ev
 
 When a sentry condition has been set, the Request will test for it immediately and every ~250ms afterwards until it has been satisfied or the test times out. At each check, the Request will emit the 'checking' event.
 
-#### Builder.when(selector: string, [minimum: number]) <a name="wait-css" />
+#### Builder.when(selector: string, [minimum: number]) <a name="when-css" />
 See also: [`select()`](#select-css), [`timeout()`](#timeout)
 
 Causes execution to be delayed until the document has at least one element satisfying the provided CSS selector using `document.querySelectorAll()`. If a minimum is provided, execution will be delayed until the minimum has been reached.
@@ -197,7 +197,7 @@ Causes execution to be delayed until the document has at least one element satis
 This form of `when` is automatically invoked when using `select` with a CSS selector.
 
 ### With functions
-#### Builder.when(sentry: function, [argument: any]) <a name="wait-function" />
+#### Builder.when(sentry: function, [argument: any]) <a name="when-function" />
 See also: [`select()`](#select-function), [`timeout()`](#timeout)
 
 Causes execution to be delayed until the sentry function provided returns true. The function will be invoked in the context of the page within the PhantomJS runtime and, as described in the documention for [using `select` with functions](#select-function), any closed over scope will be lost. A second, JSON-serializable parameter may be provided to be passed as the first argument to the sentry function when invoked.
